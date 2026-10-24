@@ -5,71 +5,108 @@
 - [x] 1.3 Run `openspec validate --all --strict` and fix every validation error before implementation
 - [x] 1.4 Commit the OpenSpec initialization, project-local skills, and change artifacts as the first reviewable Git commit
 
-## 2. Provider Authentication
+## 2. Provider Contract Foundation
 
-- [ ] 2.1 Create a Rust provider-auth crate with explicit CommandCode API-key, OAuth, and imported-CLI source enums
-- [ ] 2.2 Implement keyring-backed provider credential storage and non-secret account metadata
-- [ ] 2.3 Implement `https://api.commandcode.ai/alpha/whoami` validation with bounded timeout and redacted errors
-- [ ] 2.4 Port the CommandCode loopback OAuth flow to Rust with state validation, IPv4/IPv6 binding, ephemeral-port fallback, abort, and timeout
-- [ ] 2.5 Implement manual callback payload, authorization URL, and API-key paste fallback
-- [ ] 2.6 Add optional local CommandCode CLI credential import without persisting a copy of the source auth file
-- [ ] 2.7 Add authentication tests for success, invalid key, state mismatch, timeout, cancellation, redaction, and provider isolation
+- [ ] 2.1 [FND] Add explicit `ProviderKind`, `AccountServices`, and provider capability types in focused protocol/provider modules
+- [ ] 2.2 [FND] Add `CommandCodeAuthSource` and `CommandCodeRoute` enums without implementing network behavior
+- [ ] 2.3 [FND] Extend provider configuration parsing for direct CommandCode identity, base URL, auth source, and model routing
+- [ ] 2.4 [FND] Freeze public type signatures and publish an interface note consumed by AUTH, TRANSPORT, and ACCOUNT
+- [ ] 2.5 [FND] Add whole-object config/type round-trip tests and reserved-provider validation tests
+- [ ] 2.6 [FND] Run `just write-config-schema` and scoped provider/config tests; commit only foundation changes
 
-## 3. Direct CommandCode Provider
+## 3. CommandCode Authentication
 
-- [ ] 3.1 Add the `commandcode` provider configuration with direct base URL `https://api.commandcode.ai/provider/v1`
-- [ ] 3.2 Implement bounded `/provider/v1/models` discovery and sparse model metadata parsing
-- [ ] 3.3 Add a Rust model route enum derived from `supported_endpoints`
-- [ ] 3.4 Implement direct Responses requests and stream mapping for Responses-capable models
-- [ ] 3.5 Implement direct Chat Completions requests and stream mapping for Chat Completions-only models
-- [ ] 3.6 Implement Anthropic Messages requests and stream mapping for Anthropic-only models
-- [ ] 3.7 Map text, reasoning, tool calls, finish state, usage, and provider errors into existing Codex response events
-- [ ] 3.8 Ensure tools remain client-executed and never emit delegating remote MCP declarations to CommandCode
-- [ ] 3.9 Add captured-fixture tests for all three transports, unsupported routes, and 401/403/422/429/5xx responses
-- [ ] 3.10 Add an integration test proving direct CommandCode requests contain no proxy or OpenAI fallback traffic
+- [ ] 3.1 [AUTH] Create a focused Rust auth crate with API-key, OAuth, and imported-CLI source types
+- [ ] 3.2 [AUTH] Implement keyring-backed provider credential storage and non-secret `CommandCodeIdentity` metadata
+- [ ] 3.3 [AUTH] Implement bounded `GET https://api.commandcode.ai/alpha/whoami` validation and error redaction
+- [ ] 3.4 [AUTH] Implement random state generation and state-checked CommandCode callback payload parsing
+- [ ] 3.5 [AUTH] Implement IPv4/IPv6 loopback callback binding, ephemeral-port fallback, timeout, and abort handling
+- [ ] 3.6 [AUTH] Implement browser authorization URL construction and manual callback/URL/key paste fallback
+- [ ] 3.7 [AUTH] Implement optional local CommandCode CLI credential import without retaining the source file
+- [ ] 3.8 [AUTH] Add mock-server tests for success, invalid key, state mismatch, timeout, cancellation, and provider isolation
+- [ ] 3.9 [AUTH] Add secret-redaction tests across errors, logs, config output, and serialized diagnostic records
 
-## 4. Plugin Runtime Boundary
+## 4. CommandCode Discovery and Routing
 
-- [ ] 4.1 Add compatibility tests locking the existing plugin manifest and marketplace formats, including `paths.apps`
-- [ ] 4.2 Keep independent plugin marketplace list/add/install/update/remove behavior active without account services
-- [ ] 4.3 Disable ChatGPT App connector runtime, authorization, discovery, and app-tool injection
-- [ ] 4.4 Make `paths.apps` declarations parse, round-trip, and remain inert while plugin skills, MCP, and hooks stay active
-- [ ] 4.5 Add CLI, TUI, and app-server capability reporting that separates plugin support from disabled ChatGPT Apps
-- [ ] 4.6 Add regression tests for existing app-declaring plugins and independent marketplace plugins
+- [ ] 4.1 [TRANSPORT] Register the direct `commandcode` provider with base URL `https://api.commandcode.ai/provider/v1`
+- [ ] 4.2 [TRANSPORT] Implement bounded `/provider/v1/models` retrieval with response-size and model-count caps
+- [ ] 4.3 [TRANSPORT] Parse sparse model metadata and normalize `supported_endpoints` into `CommandCodeRoute`
+- [ ] 4.4 [TRANSPORT] Reject unknown, empty, or mutually unsupported route sets before request construction
+- [ ] 4.5 [TRANSPORT] Add discovery fixtures for complete, sparse, oversized, malformed, and unavailable responses
+- [ ] 4.6 [TRANSPORT] Expose selected provider, model, route, and catalog state through the existing model-provider boundary
 
-## 5. Optional Account Services
+## 5. CommandCode Wire Adapters
 
-- [ ] 5.1 Add an explicit account-services capability with disabled default and optional Codex/ChatGPT mode
-- [ ] 5.2 Prevent account client construction and network calls while the capability is disabled
-- [ ] 5.3 Preserve account login, status, usage, limits, and credits only when the capability is enabled
-- [ ] 5.4 Keep CommandCode provider authentication and routing independent of account-services state
-- [ ] 5.5 Ensure enabling account services does not enable ChatGPT Apps
-- [ ] 5.6 Add tests for disabled startup, enabled account reporting, account outage isolation, and CommandCode coexistence
+- [ ] 5.1 [TRANSPORT] Define shared CommandCode request context and internal stream-event mapping types
+- [ ] 5.2 [TRANSPORT] Implement Responses request construction for Responses-capable models
+- [ ] 5.3 [TRANSPORT] Implement Responses stream decoding for text, reasoning, tool calls, usage, and finish state
+- [ ] 5.4 [TRANSPORT] Implement Chat Completions request construction for Chat Completions-only models
+- [ ] 5.5 [TRANSPORT] Implement indexed Chat Completions tool-call assembly, usage, and finish-reason mapping
+- [ ] 5.6 [TRANSPORT] Implement Anthropic Messages request construction for Anthropic-only models
+- [ ] 5.7 [TRANSPORT] Implement Anthropic Messages stream decoding and tool-result round trips
+- [ ] 5.8 [TRANSPORT] Preserve client-side tool execution and exclude remote MCP delegating declarations
+- [ ] 5.9 [TRANSPORT] Map 401, 403, 422, 429, and retryable 5xx responses into bounded provider errors
+- [ ] 5.10 [TRANSPORT] Add captured request/stream fixtures for every route and terminal failure class
+- [ ] 5.11 [TRANSPORT] Add direct-network integration tests proving no proxy or OpenAI fallback route is used
 
-## 6. CLI, TUI, and Webapp Integration
+## 6. Plugin Preservation and ChatGPT App Boundary
 
-- [ ] 6.1 Add CLI/TUI setup for CommandCode API-key and OAuth authentication without a blocking default login
-- [ ] 6.2 Show provider ID, endpoint health, supported model routes, and provider-scoped failures in CLI/TUI
-- [ ] 6.3 Preserve webapp thread start/resume, turns, events, history, model selection, approvals, and local tools
-- [ ] 6.4 Return deterministic disabled responses for ChatGPT App app-server RPCs without network traffic
-- [ ] 6.5 Capability-gate account app-server APIs and preserve supported account reporting when enabled
-- [ ] 6.6 Update TUI snapshots for provider setup, model selection, plugins, disabled apps, optional account state, and provider errors
-- [ ] 6.7 Regenerate and verify app-server schema fixtures
+- [ ] 6.1 [PLUGINS] Add compatibility tests locking `PluginManifest`, `PluginId`, `paths.apps`, and marketplace parsing
+- [ ] 6.2 [PLUGINS] Add round-trip fixtures for local, Git, and npm marketplace plugin entries
+- [ ] 6.3 [PLUGINS] Keep plugin skills, MCP declarations, hooks, and package data active without account services
+- [ ] 6.4 [PLUGINS] Disable ChatGPT App connector construction, authorization, discovery, and app-tool injection
+- [ ] 6.5 [PLUGINS] Make `paths.apps` parse and serialize while remaining inert at runtime
+- [ ] 6.6 [PLUGINS] Produce capability metadata separating available plugin support from disabled ChatGPT Apps
+- [ ] 6.7 [PLUGINS] Add regressions proving an app-declaring plugin still loads all non-app resources
 
-## 7. Migration and Cleanup
+## 7. Optional Account Services
 
-- [ ] 7.1 Migrate local-proxy and generated-catalog configuration to direct CommandCode provider configuration
-- [ ] 7.2 Remove the implicit OpenAI provider fallback and default OpenAI/ChatGPT service traffic
-- [ ] 7.3 Keep legacy session history readable and test provider-ID migration behavior
-- [ ] 7.4 Remove obsolete proxy-only configuration fields after compatibility tests pass
-- [ ] 7.5 Run `just write-config-schema` and verify the generated config schema
-- [ ] 7.6 Run `just bazel-lock-update` if Rust dependencies changed and include lockfile updates in the commit
+- [ ] 7.1 [ACCOUNT] Wire `AccountServices::Disabled` as the default and avoid account client construction in that mode
+- [ ] 7.2 [ACCOUNT] Preserve Codex/ChatGPT login behavior behind `AccountServices::Codex`
+- [ ] 7.3 [ACCOUNT] Preserve account status, usage, limits, and credits only in enabled mode
+- [ ] 7.4 [ACCOUNT] Keep CommandCode auth and transport independent of account capability state
+- [ ] 7.5 [ACCOUNT] Keep ChatGPT Apps disabled even when account services are enabled
+- [ ] 7.6 [ACCOUNT] Add no-network tests for disabled mode and full account reporting tests for enabled mode
+- [ ] 7.7 [ACCOUNT] Add account-outage isolation tests with CommandCode inference active
 
-## 8. Verification and Completion
+## 8. CLI and TUI Integration
 
-- [ ] 8.1 Run `just fmt` and scoped `just fix` for every changed Rust project
-- [ ] 8.2 Run project tests for provider, auth, plugins, core, TUI, and app-server changes
-- [ ] 8.3 Run a mocked end-to-end CommandCode text turn and tool-calling turn through CLI and app-server
-- [ ] 8.4 Run a real API smoke test with an authorized CommandCode key for `commandcode/xiaomi-mimo-v2.6-pro`, or record the precise plan/endpoint blocker
-- [ ] 8.5 Verify no production OpenAI fallback or local proxy path remains in the default runtime
-- [ ] 8.6 Re-run `openspec validate --all --strict`, inspect Git status/diff, and commit the completed implementation
+- [ ] 8.1 [CLI-TUI] Replace blocking default login with optional CommandCode provider setup states
+- [ ] 8.2 [CLI-TUI] Add CommandCode API-key entry and OAuth/manual-login screens using AUTH interfaces
+- [ ] 8.3 [CLI-TUI] Show provider ID, endpoint health, model catalog state, selected model, and supported route
+- [ ] 8.4 [CLI-TUI] Render provider-scoped authentication, plan, rate-limit, and upstream errors
+- [ ] 8.5 [CLI-TUI] Keep independent plugin management usable and report ChatGPT Apps separately as disabled
+- [ ] 8.6 [CLI-TUI] Show account status/usage/limits/credits only when the account capability is enabled
+- [ ] 8.7 [CLI-TUI] Add TUI snapshots for setup, auth, model picker, status, plugins, disabled apps, account states, and errors
+- [ ] 8.8 [CLI-TUI] Run scoped CLI/TUI tests and review every updated snapshot as a visual diff
+
+## 9. App-Server and Webapp Integration
+
+- [ ] 9.1 [APP] Preserve thread start/resume, turn submission, events, history, model selection, approvals, and local tools
+- [ ] 9.2 [APP] Expose provider ID, readiness, model catalog, selected model, and supported route to the webapp
+- [ ] 9.3 [APP] Return deterministic disabled responses for ChatGPT App RPCs without network traffic
+- [ ] 9.4 [APP] Capability-gate account RPCs and preserve account reporting only when enabled
+- [ ] 9.5 [APP] Preserve independent plugin management RPCs through the unchanged plugin format
+- [ ] 9.6 [APP] Add JSON-RPC integration tests for thread lifecycle and capability states
+- [ ] 9.7 [APP] Add app-server schema tests and regenerate fixtures with `just write-app-server-schema`
+- [ ] 9.8 [APP] Run scoped app-server and protocol tests; commit protocol and handler changes together
+
+## 10. Migration and Cleanup
+
+- [ ] 10.1 [INT] Add migration from local-proxy/generated-catalog configuration to direct CommandCode configuration
+- [ ] 10.2 [INT] Add session/provider-ID compatibility tests for legacy rollout data
+- [ ] 10.3 [INT] Remove implicit OpenAI provider fallback and default OpenAI/ChatGPT service traffic
+- [ ] 10.4 [INT] Remove obsolete proxy-only fields after migration tests pass
+- [ ] 10.5 [INT] Reconcile shared files across feature branches without changing frozen interfaces
+- [ ] 10.6 [INT] Run `just write-config-schema`, `just write-app-server-schema`, and `just bazel-lock-update` when applicable
+- [ ] 10.7 [INT] Add source/network audits for proxy endpoints and default OpenAI service hosts
+
+## 11. Independent Verification and Completion
+
+- [ ] 11.1 [VERIFY] Map every OpenSpec requirement and scenario to a test or recorded manual smoke result
+- [ ] 11.2 [VERIFY] Review credential handling for secret leakage in config, logs, rollouts, errors, and app-server output
+- [ ] 11.3 [VERIFY] Review plugin compatibility and prove ChatGPT Apps cannot execute or trigger authorization
+- [ ] 11.4 [VERIFY] Run scoped tests for all changed projects and `just fmt`/scoped `just fix`
+- [ ] 11.5 [VERIFY] Run mocked CommandCode text and tool turns through CLI and app-server for all applicable routes
+- [ ] 11.6 [VERIFY] Run a real CommandCode smoke test or record the exact external plan/key blocker
+- [ ] 11.7 [VERIFY] Re-run `openspec validate --all --strict`, inspect the full diff/history, and approve or reject completion
