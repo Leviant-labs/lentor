@@ -34,11 +34,20 @@ use std::time::Duration;
 mod capabilities;
 mod gateway_oauth;
 mod oauth_session;
+mod provider_contract;
 pub use capabilities::ModelProviderCapabilities;
 pub use capabilities::RemoteCompactionSupport;
+pub use codex_protocol::provider::AccountServices;
+pub use codex_protocol::provider::CommandCodeAuthSource;
+pub use codex_protocol::provider::CommandCodeRoute;
+pub use codex_protocol::provider::ProviderCapabilities;
+pub use codex_protocol::provider::ProviderKind;
 pub use gateway_oauth::GatewayOAuthConfig;
 pub use gateway_oauth::GatewayOAuthDelivery;
 pub use oauth_session::OAuthSessionConfig;
+pub use provider_contract::COMMAND_CODE_PROVIDER_BASE_URL;
+pub use provider_contract::COMMAND_CODE_PROVIDER_ID;
+pub use provider_contract::ProviderContract;
 
 pub const RESIDENCY_HEADER_NAME: &str = "x-openai-internal-codex-residency";
 
@@ -299,6 +308,13 @@ other non-default provider fields are not supported"
     }
 
     pub fn validate(&self) -> std::result::Result<(), String> {
+        if let Some(contract) = self
+            .capabilities
+            .as_ref()
+            .and_then(|capabilities| capabilities.contract.as_ref())
+        {
+            contract.validate(self)?;
+        }
         if let Some(gateway) = &self.gateway_oauth {
             gateway.validate(self)?;
         }

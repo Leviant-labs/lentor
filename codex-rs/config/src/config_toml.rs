@@ -35,6 +35,7 @@ use crate::types::WindowsToml;
 use codex_features::FeaturesToml;
 use codex_model_provider_info::AMAZON_BEDROCK_PROVIDER_ID;
 use codex_model_provider_info::AMAZON_BEDROCK_RUNTIME_PROVIDER_ID;
+use codex_model_provider_info::COMMAND_CODE_PROVIDER_ID;
 use codex_model_provider_info::LEGACY_OLLAMA_CHAT_PROVIDER_ID;
 use codex_model_provider_info::LMSTUDIO_OSS_PROVIDER_ID;
 use codex_model_provider_info::ModelProviderInfo;
@@ -958,6 +959,23 @@ pub fn validate_model_providers(
 ) -> Result<(), String> {
     validate_reserved_model_provider_ids(model_providers)?;
     for (key, provider) in model_providers {
+        if provider
+            .capabilities
+            .as_ref()
+            .and_then(|capabilities| capabilities.contract.as_ref())
+            .is_some_and(|contract| {
+                matches!(
+                    contract.kind,
+                    codex_model_provider_info::ProviderKind::CommandCode
+                )
+            })
+            && key != COMMAND_CODE_PROVIDER_ID
+        {
+            return Err(format!(
+                "model_providers.{key}: provider kind `command_code` requires ID \
+`{COMMAND_CODE_PROVIDER_ID}`"
+            ));
+        }
         if matches!(
             key.as_str(),
             AMAZON_BEDROCK_PROVIDER_ID | AMAZON_BEDROCK_RUNTIME_PROVIDER_ID
@@ -999,6 +1017,10 @@ where
 #[cfg(test)]
 #[path = "bedrock_runtime_tests.rs"]
 mod bedrock_runtime_tests;
+
+#[cfg(test)]
+#[path = "model_provider_contract_tests.rs"]
+mod model_provider_contract_tests;
 
 pub fn validate_oss_provider(provider: &str) -> std::io::Result<()> {
     match provider {

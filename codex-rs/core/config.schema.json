@@ -6,6 +6,14 @@
       "description": "A path that is guaranteed to be absolute and normalized (though it is not guaranteed to be canonicalized or exist on the filesystem).\n\nIMPORTANT: When deserializing an `AbsolutePathBuf`, a base path must be set using [AbsolutePathBufGuard::new]. If no base path is set, the deserialization will fail unless the path being deserialized is already absolute.",
       "type": "string"
     },
+    "AccountServices": {
+      "description": "Optional Codex or ChatGPT account functionality selected independently of model providers.",
+      "enum": [
+        "disabled",
+        "codex"
+      ],
+      "type": "string"
+    },
     "AgentRoleToml": {
       "additionalProperties": false,
       "properties": {
@@ -645,6 +653,24 @@
         }
       },
       "type": "object"
+    },
+    "CommandCodeAuthSource": {
+      "description": "Credential source selected for CommandCode provider authentication.",
+      "enum": [
+        "api_key",
+        "o_auth",
+        "imported_cli"
+      ],
+      "type": "string"
+    },
+    "CommandCodeRoute": {
+      "description": "CommandCode request family selected from a model's supported endpoints.",
+      "enum": [
+        "responses",
+        "chat_completions",
+        "anthropic_messages"
+      ],
+      "type": "string"
     },
     "ComputerUseConfigToml": {
       "additionalProperties": false,
@@ -2869,6 +2895,14 @@
       "additionalProperties": false,
       "description": "Overrides for the optional API features supported by a custom provider.",
       "properties": {
+        "contract": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/ProviderContract"
+            }
+          ],
+          "description": "Explicit provider identity and optional runtime capabilities."
+        },
         "external_web_access": {
           "description": "Whether hosted web search may access the live web.",
           "type": "boolean"
@@ -3930,6 +3964,77 @@
         }
       },
       "type": "object"
+    },
+    "ProviderCapabilities": {
+      "additionalProperties": false,
+      "description": "Runtime capabilities declared by a provider without implementing their behavior.",
+      "properties": {
+        "account_services": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/AccountServices"
+            }
+          ],
+          "default": "disabled",
+          "description": "Account services remain disabled unless explicitly selected."
+        },
+        "command_code_auth_source": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/CommandCodeAuthSource"
+            }
+          ],
+          "description": "Credential source used by the CommandCode authentication implementation."
+        },
+        "command_code_model_routes": {
+          "default": [],
+          "description": "Routes that CommandCode discovery may select for the provider's models.",
+          "items": {
+            "$ref": "#/definitions/CommandCodeRoute"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "ProviderContract": {
+      "additionalProperties": false,
+      "description": "Explicit provider identity and capabilities consumed by later provider implementations.",
+      "properties": {
+        "capabilities": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/ProviderCapabilities"
+            }
+          ],
+          "description": "Optional authentication, routing, and account capabilities."
+        },
+        "kind": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/ProviderKind"
+            }
+          ],
+          "description": "Provider family used to select the focused implementation."
+        }
+      },
+      "required": [
+        "capabilities",
+        "kind"
+      ],
+      "type": "object"
+    },
+    "ProviderKind": {
+      "description": "Built-in provider family represented by a model-provider registry entry.",
+      "enum": [
+        "command_code",
+        "openai",
+        "amazon_bedrock",
+        "amazon_bedrock_runtime",
+        "oss",
+        "custom"
+      ],
+      "type": "string"
     },
     "RawMcpServerConfig": {
       "additionalProperties": false,

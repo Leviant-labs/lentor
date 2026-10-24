@@ -6,6 +6,36 @@ use std::num::NonZeroU64;
 use tempfile::tempdir;
 
 #[test]
+fn command_code_provider_contract_round_trips_with_whole_provider() {
+    let provider = ModelProviderInfo {
+        name: "CommandCode".to_string(),
+        base_url: Some(COMMAND_CODE_PROVIDER_BASE_URL.to_string()),
+        capabilities: Some(ModelProviderCapabilities {
+            contract: Some(ProviderContract {
+                kind: ProviderKind::CommandCode,
+                capabilities: ProviderCapabilities {
+                    account_services: AccountServices::Disabled,
+                    command_code_auth_source: Some(CommandCodeAuthSource::OAuth),
+                    command_code_model_routes: vec![
+                        CommandCodeRoute::Responses,
+                        CommandCodeRoute::ChatCompletions,
+                        CommandCodeRoute::AnthropicMessages,
+                    ],
+                },
+            }),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+
+    let encoded = toml::to_string(&provider).expect("provider should serialize");
+    assert_eq!(
+        toml::from_str::<ModelProviderInfo>(&encoded).expect("provider should round-trip"),
+        provider
+    );
+}
+
+#[test]
 fn runtime_internal_metadata_opt_in_is_not_serialized_or_configurable() {
     let trusted = ModelProviderInfo {
         include_internal_metadata: true,
