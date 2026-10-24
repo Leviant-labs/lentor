@@ -279,3 +279,60 @@ Implementation is complete only when:
 - Plugin format and independent plugin marketplaces remain compatible.
 - ChatGPT Apps are inert, and optional account services work only when enabled.
 - The integrated implementation is committed in `codex-upstream` with a clean worktree.
+
+## PR Plan
+
+### PR 1: Provider Contract Foundation
+- **Description:** Add explicit provider identity, account capability, CommandCode auth-source, and model-route contracts with configuration parsing and focused tests.
+- **Files/components affected:** codex-rs/model-provider-info, codex-rs/protocol, codex-rs/config, codex-rs/core/config.schema.json
+- **Dependencies:** None
+
+### PR 2: Plugin Format Preservation and ChatGPT App Boundary
+- **Description:** Lock the existing plugin and marketplace formats, keep independent plugin resources active, and make `paths.apps` inert without removing its syntax.
+- **Files/components affected:** codex-rs/plugin, codex-rs/core-plugins, codex-rs/core plugin/app injection paths, plugin fixtures
+- **Dependencies:** None
+
+### PR 3: CommandCode Provider Authentication
+- **Description:** Implement provider-scoped CommandCode API-key and OAuth authentication in Rust with keyring storage, `whoami` validation, loopback/manual login, and secret redaction.
+- **Files/components affected:** codex-rs/provider-auth, codex-rs/keyring-store integration, auth tests and mock servers
+- **Dependencies:** PR 1
+
+### PR 4: CommandCode Model Discovery and Route Selection
+- **Description:** Implement direct `/provider/v1/models` discovery, bounded parsing, sparse metadata, and `supported_endpoints` route selection.
+- **Files/components affected:** codex-rs/command-code-provider discovery/config modules, model-provider selection boundary, discovery tests
+- **Dependencies:** PR 1
+
+### PR 5: CommandCode Responses Transport
+- **Description:** Define shared CommandCode transport context and implement direct Responses requests, stream decoding, tool calls, usage, and provider error mapping.
+- **Files/components affected:** codex-rs/command-code-provider transport modules, codex-api event adapters, Responses fixtures and integration tests
+- **Dependencies:** PR 3, PR 4
+
+### PR 6: CommandCode Chat Completions Transport
+- **Description:** Implement direct Chat Completions requests and stream decoding with indexed tool-call assembly, usage, finish reasons, and bounded errors.
+- **Files/components affected:** codex-rs/command-code-provider chat modules, Chat Completions fixtures and integration tests
+- **Dependencies:** PR 5
+
+### PR 7: CommandCode Anthropic Messages Transport
+- **Description:** Implement direct Anthropic Messages requests and stream decoding with tool-result round trips, usage, finish state, and bounded errors.
+- **Files/components affected:** codex-rs/command-code-provider Anthropic modules, Anthropic fixtures and integration tests
+- **Dependencies:** PR 5
+
+### PR 8: Optional Codex Account Services
+- **Description:** Make Codex/ChatGPT account login, status, usage, limits, and credits capability-gated and disabled by default while preserving CommandCode operation.
+- **Files/components affected:** codex-rs/account-capability or focused core wiring, codex-rs/login, codex-rs/backend-client, account tests
+- **Dependencies:** PR 1
+
+### PR 9: CLI and TUI Provider Integration
+- **Description:** Add non-blocking CommandCode setup/login, provider readiness and model route views, plugin/app capability separation, optional account views, and required snapshots.
+- **Files/components affected:** codex-rs/cli, codex-rs/tui, TUI snapshot fixtures
+- **Dependencies:** PR 2, PR 3, PR 5, PR 6, PR 7, PR 8
+
+### PR 10: App-Server Webapp Integration
+- **Description:** Preserve core webapp thread workflows and expose provider readiness while returning deterministic disabled ChatGPT Apps and optional account capability responses.
+- **Files/components affected:** codex-rs/app-server, codex-rs/app-server-protocol, app-server integration tests and schema fixtures
+- **Dependencies:** PR 2, PR 3, PR 5, PR 6, PR 7, PR 8
+
+### PR 11: Migration, Cleanup, and Integration Audit
+- **Description:** Migrate proxy-era configuration, remove implicit OpenAI fallback and default service traffic, reconcile shared files, refresh schemas/locks, and add end-to-end audits.
+- **Files/components affected:** config migration modules, workspace manifests/lockfiles, cross-crate integration tests, source/network audits
+- **Dependencies:** PR 9, PR 10
