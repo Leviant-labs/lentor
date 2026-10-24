@@ -84,7 +84,7 @@ pub async fn list_accessible_connectors_from_mcp_tools(
 pub(crate) async fn list_tool_suggest_discoverable_tools_with_auth(
     config: &Config,
     plugins_manager: &PluginsManager,
-    _auth: Option<&CodexAuth>,
+    auth: Option<&CodexAuth>,
     _accessible_connectors: &[AppInfo],
     loaded_plugin_app_connector_ids: &[String],
 ) -> anyhow::Result<Vec<DiscoverableTool>> {
