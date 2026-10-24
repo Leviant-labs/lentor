@@ -61,6 +61,20 @@ pub struct PluginCapabilitySummary {
     pub app_connector_ids: Vec<AppConnectorId>,
 }
 
+/// Runtime support split between ordinary plugin resources and ChatGPT Apps.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PluginRuntimeCapabilities {
+    pub plugins_available: bool,
+    pub chatgpt_apps_available: bool,
+}
+
+impl PluginRuntimeCapabilities {
+    pub const CURRENT: Self = Self {
+        plugins_available: true,
+        chatgpt_apps_available: false,
+    };
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PluginHookSource {
     pub plugin_id: PluginId,

@@ -31,9 +31,9 @@ fn sorted_mcp_server_names(mcp_servers: &HashMap<String, i32>) -> Vec<String> {
 }
 
 #[test]
-fn apps_route_available_tracks_auth_mode() {
-    assert!(apps_route_available(Some(AuthMode::Chatgpt)));
-    assert!(apps_route_available(Some(AuthMode::AgentIdentity)));
+fn apps_route_is_unavailable_for_every_auth_mode() {
+    assert!(!apps_route_available(Some(AuthMode::Chatgpt)));
+    assert!(!apps_route_available(Some(AuthMode::AgentIdentity)));
     assert!(!apps_route_available(Some(AuthMode::ApiKey)));
     assert!(!apps_route_available(/*auth_mode*/ None));
 }
@@ -58,7 +58,7 @@ fn app_mcp_routing_clears_apps_when_apps_route_is_unavailable() {
 }
 
 #[test]
-fn app_mcp_routing_preserves_apps_and_removes_conflicting_mcp_with_apps_route() {
+fn app_mcp_routing_keeps_mcp_and_clears_apps_without_apps_runtime() {
     let mut apps = vec![app("linear"), app("notion")];
     let mut mcp_servers = mcp_servers([("linear", 1), ("docs", 2), ("notion", 3)]);
 
@@ -69,18 +69,19 @@ fn app_mcp_routing_preserves_apps_and_removes_conflicting_mcp_with_apps_route() 
         /*plugin_active*/ true,
     );
 
-    assert_eq!(
-        sorted_app_names(&apps),
-        vec!["linear".to_string(), "notion".to_string()]
-    );
+    assert_eq!(sorted_app_names(&apps), Vec::<String>::new());
     assert_eq!(
         sorted_mcp_server_names(&mcp_servers),
-        vec!["docs".to_string()]
+        vec![
+            "docs".to_string(),
+            "linear".to_string(),
+            "notion".to_string()
+        ]
     );
 }
 
 #[test]
-fn app_mcp_routing_preserves_mcp_conflicts_when_plugin_is_inactive() {
+fn app_mcp_routing_clears_apps_when_plugin_is_inactive() {
     let mut apps = vec![app("linear")];
     let mut mcp_servers = mcp_servers([("linear", 1), ("docs", 2)]);
 
@@ -91,7 +92,7 @@ fn app_mcp_routing_preserves_mcp_conflicts_when_plugin_is_inactive() {
         /*plugin_active*/ false,
     );
 
-    assert_eq!(sorted_app_names(&apps), vec!["linear".to_string()]);
+    assert!(apps.is_empty());
     assert_eq!(
         sorted_mcp_server_names(&mcp_servers),
         vec!["docs".to_string(), "linear".to_string()]

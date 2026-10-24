@@ -11,6 +11,7 @@ use crate::AppConnectorId;
 use crate::AppDeclaration;
 use crate::PluginCapabilitySummary;
 use crate::PluginHookSource;
+use crate::PluginRuntimeCapabilities;
 use crate::app_connector_ids_from_declarations;
 
 const MAX_CAPABILITY_SUMMARY_DESCRIPTION_LEN: usize = 1024;
@@ -210,6 +211,10 @@ impl<M: Clone> PluginLoadOutcome<M> {
         &self.capability_summaries
     }
 
+    pub fn runtime_capabilities(&self) -> PluginRuntimeCapabilities {
+        PluginRuntimeCapabilities::CURRENT
+    }
+
     pub fn plugins(&self) -> &[LoadedPlugin<M>] {
         &self.plugins
     }
@@ -272,6 +277,19 @@ mod tests {
                 plugin_root: test_path("zeta@test"),
                 discovery_mode: SkillDiscoveryMode::Recursive,
             }]
+        );
+    }
+
+    #[test]
+    fn runtime_capabilities_separate_plugins_from_chatgpt_apps() {
+        let outcome = PluginLoadOutcome::<()>::default();
+
+        assert_eq!(
+            outcome.runtime_capabilities(),
+            PluginRuntimeCapabilities {
+                plugins_available: true,
+                chatgpt_apps_available: false,
+            }
         );
     }
 }

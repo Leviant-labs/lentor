@@ -770,14 +770,8 @@ impl TurnContext {
     }
 
     pub(crate) fn apps_enabled(&self) -> bool {
-        let uses_codex_backend = self
-            .auth_manager
-            .as_deref()
-            .is_some_and(AuthManager::current_auth_uses_codex_backend);
-        self.config
-            .features
-            .apps_enabled_for_auth(uses_codex_backend)
-            && self.config.orchestrator_mcp_enabled
+        // ChatGPT Apps are preserved as package metadata but disabled at runtime.
+        false
     }
 
     pub(crate) async fn with_model(

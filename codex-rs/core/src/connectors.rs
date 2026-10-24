@@ -84,23 +84,12 @@ pub async fn list_accessible_connectors_from_mcp_tools(
 pub(crate) async fn list_tool_suggest_discoverable_tools_with_auth(
     config: &Config,
     plugins_manager: &PluginsManager,
-    auth: Option<&CodexAuth>,
-    accessible_connectors: &[AppInfo],
+    _auth: Option<&CodexAuth>,
+    _accessible_connectors: &[AppInfo],
     loaded_plugin_app_connector_ids: &[String],
 ) -> anyhow::Result<Vec<DiscoverableTool>> {
     let connector_ids = tool_suggest_connector_ids(config, loaded_plugin_app_connector_ids);
-    let directory_connectors = codex_connectors::merge::merge_plugin_connectors(
-        cached_directory_connectors_for_tool_suggest_with_auth(config, auth).await,
-        connector_ids.iter().cloned(),
-    );
-    let discoverable_connectors =
-        codex_connectors::filter::filter_tool_suggest_discoverable_connectors(
-            directory_connectors,
-            accessible_connectors,
-            &connector_ids,
-        )
-        .into_iter()
-        .map(DiscoverableTool::from);
+    let discoverable_connectors = std::iter::empty();
     let discoverable_plugins = list_tool_suggest_discoverable_plugins(
         config,
         plugins_manager,
@@ -118,6 +107,9 @@ pub(crate) async fn list_tool_suggest_discoverable_tools_with_auth(
 pub async fn list_cached_accessible_connectors_from_mcp_tools(
     config: &Config,
 ) -> Option<Vec<AppInfo>> {
+    if !chatgpt_apps_available() {
+        return Some(Vec::new());
+    }
     let auth_manager =
         AuthManager::shared_from_config(config, /*enable_codex_api_key_env*/ false)
             .await
@@ -138,7 +130,7 @@ pub(crate) fn refresh_accessible_connectors_cache_from_mcp_tools(
     auth: Option<&CodexAuth>,
     mcp_tools: &[ToolInfo],
 ) {
-    if !config.features.enabled(Feature::Apps) {
+    if !chatgpt_apps_available() || !config.features.enabled(Feature::Apps) {
         return;
     }
 
@@ -162,6 +154,9 @@ pub async fn list_accessible_connectors_from_mcp_tools_with_options_and_status(
     config: &Config,
     force_refetch: bool,
 ) -> anyhow::Result<AccessibleConnectorsStatus> {
+    if !chatgpt_apps_available() {
+        return Ok(disabled_accessible_connectors_status());
+    }
     // TODO: Wire callers that already own an EnvironmentManager into
     // list_accessible_connectors_from_mcp_tools_with_environment_manager instead
     // of constructing a temporary manager here.
@@ -188,6 +183,9 @@ pub async fn list_accessible_connectors_from_mcp_tools_with_environment_manager(
     force_refetch: bool,
     environment_manager: Arc<EnvironmentManager>,
 ) -> anyhow::Result<AccessibleConnectorsStatus> {
+    if !chatgpt_apps_available() {
+        return Ok(disabled_accessible_connectors_status());
+    }
     let auth_manager =
         AuthManager::shared_from_config(config, /*enable_codex_api_key_env*/ false).await?;
     let plugins_manager = Arc::new(plugins_manager_for_config(
@@ -210,6 +208,9 @@ pub async fn list_accessible_connectors_from_mcp_tools_with_mcp_manager(
     environment_manager: Arc<EnvironmentManager>,
     mcp_manager: Arc<McpManager>,
 ) -> anyhow::Result<AccessibleConnectorsStatus> {
+    if !chatgpt_apps_available() {
+        return Ok(disabled_accessible_connectors_status());
+    }
     let auth_manager =
         AuthManager::shared_from_config(config, /*enable_codex_api_key_env*/ false).await?;
     let auth = auth_manager.auth().await;
@@ -423,7 +424,7 @@ async fn cached_directory_connectors_for_tool_suggest_with_auth(
     config: &Config,
     auth: Option<&CodexAuth>,
 ) -> Vec<AppInfo> {
-    if !config.features.enabled(Feature::Apps) {
+    if !chatgpt_apps_available() || !config.features.enabled(Feature::Apps) {
         return Vec::new();
     }
 
@@ -519,6 +520,9 @@ pub(crate) fn mcp_approvals_reviewer_from_layers(
     connector_id: Option<&str>,
     link_id: Option<&str>,
 ) -> ApprovalsReviewer {
+    if !chatgpt_apps_available() {
+        return default_reviewer;
+    }
     let requirements = config_layer_stack.requirements();
     if model.is_some_and(|model| requirements.auto_review_required_for_model(model)) {
         return ApprovalsReviewer::AutoReview;
@@ -548,6 +552,17 @@ pub(crate) fn mcp_approvals_reviewer_from_layers(
     }
 
     default_reviewer
+}
+
+fn chatgpt_apps_available() -> bool {
+    codex_plugin::PluginRuntimeCapabilities::CURRENT.chatgpt_apps_available
+}
+
+fn disabled_accessible_connectors_status() -> AccessibleConnectorsStatus {
+    AccessibleConnectorsStatus {
+        connectors: Vec::new(),
+        codex_apps_ready: false,
+    }
 }
 
 #[cfg(test)]

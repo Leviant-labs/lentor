@@ -6,8 +6,9 @@ use codex_protocol::auth::AuthMode;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
-pub fn apps_route_available(auth_mode: Option<AuthMode>) -> bool {
-    auth_mode.is_some_and(AuthMode::uses_codex_backend)
+pub fn apps_route_available(_auth_mode: Option<AuthMode>) -> bool {
+    // This build preserves app declarations but has no ChatGPT Apps runtime.
+    false
 }
 
 pub(crate) fn plugin_supports_apps(format: PluginManifestFormat, plugin_id: &PluginId) -> bool {
