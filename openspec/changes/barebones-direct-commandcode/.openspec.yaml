@@ -1,0 +1,3 @@
+schema: spec-driven
+created: 2026-10-24
+goal: Define and validate the Rust-facing contracts before implementation.
