@@ -1,3 +1,4 @@
+#[cfg(test)]
 use std::collections::HashSet;
 use std::sync::Arc;
 use std::sync::LazyLock;
@@ -8,8 +9,6 @@ use std::time::Instant;
 pub use codex_connectors::AppBranding;
 pub use codex_connectors::AppInfo;
 pub use codex_connectors::AppMetadata;
-use codex_connectors::ConnectorDirectoryCacheContext;
-use codex_connectors::ConnectorDirectoryCacheKey;
 use codex_connectors::apps_config_from_layer_stack;
 use codex_connectors::connector_runtime_context_key;
 use codex_exec_server::EnvironmentManager;
@@ -25,6 +24,7 @@ use crate::plugins::list_tool_suggest_discoverable_plugins;
 use crate::plugins::plugins_manager_for_config;
 use crate::session::INITIAL_SUBMIT_ID;
 use codex_config::types::ApprovalsReviewer;
+#[cfg(test)]
 use codex_config::types::ToolSuggestDiscoverableType;
 use codex_core_plugins::PluginsManager;
 use codex_features::Feature;
@@ -391,6 +391,7 @@ fn write_cached_accessible_connectors(
     });
 }
 
+#[cfg(test)]
 fn tool_suggest_connector_ids(
     config: &Config,
     loaded_plugin_app_connector_ids: &[String],
