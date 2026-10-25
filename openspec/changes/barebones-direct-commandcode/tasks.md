@@ -7,24 +7,27 @@
 
 ## 2. Provider Contract Foundation
 
-- [ ] 2.1 [FND] Add explicit `ProviderKind`, `AccountServices`, and provider capability types in focused protocol/provider modules
-- [ ] 2.2 [FND] Add `CommandCodeAuthSource` and `CommandCodeRoute` enums without implementing network behavior
-- [ ] 2.3 [FND] Extend provider configuration parsing for direct CommandCode identity, base URL, auth source, and model routing
-- [ ] 2.4 [FND] Freeze public type signatures and publish an interface note consumed by AUTH, TRANSPORT, and ACCOUNT
-- [ ] 2.5 [FND] Add whole-object config/type round-trip tests and reserved-provider validation tests
+- [x] 2.1 [FND] Add explicit `ProviderKind`, `AccountServices`, and provider capability types in focused protocol/provider modules
+- [x] 2.2 [FND] Add `CommandCodeAuthSource` and `CommandCodeRoute` enums without implementing network behavior
+- [x] 2.3 [FND] Extend provider configuration parsing for direct CommandCode identity, base URL, auth source, and model routing
+- [x] 2.4 [FND] Freeze public type signatures and publish an interface note consumed by AUTH, TRANSPORT, and ACCOUNT
+- [x] 2.5 [FND] Add whole-object config/type round-trip tests and reserved-provider validation tests
 - [ ] 2.6 [FND] Run `just write-config-schema` and scoped provider/config tests; commit only foundation changes
+  - Partial: `codex-rs/core/config.schema.json` was updated by hand in `c0d4bfc`, but `just write-config-schema` and the scoped provider/config test run are not verified in this environment.
 
 ## 3. CommandCode Authentication
 
-- [ ] 3.1 [AUTH] Create a focused Rust auth crate with API-key, OAuth, and imported-CLI source types
-- [ ] 3.2 [AUTH] Implement keyring-backed provider credential storage and non-secret `CommandCodeIdentity` metadata
-- [ ] 3.3 [AUTH] Implement bounded `GET https://api.commandcode.ai/alpha/whoami` validation and error redaction
-- [ ] 3.4 [AUTH] Implement random state generation and state-checked CommandCode callback payload parsing
-- [ ] 3.5 [AUTH] Implement IPv4/IPv6 loopback callback binding, ephemeral-port fallback, timeout, and abort handling
-- [ ] 3.6 [AUTH] Implement browser authorization URL construction and manual callback/URL/key paste fallback
+- [x] 3.1 [AUTH] Create a focused Rust auth crate with API-key, OAuth, and imported-CLI source types
+- [x] 3.2 [AUTH] Implement keyring-backed provider credential storage and non-secret `CommandCodeIdentity` metadata
+- [x] 3.3 [AUTH] Implement bounded `GET https://api.commandcode.ai/alpha/whoami` validation and error redaction
+- [x] 3.4 [AUTH] Implement random state generation and state-checked CommandCode callback payload parsing
+- [x] 3.5 [AUTH] Implement IPv4/IPv6 loopback callback binding, ephemeral-port fallback, timeout, and abort handling
+- [x] 3.6 [AUTH] Implement browser authorization URL construction and manual callback/URL/key paste fallback
 - [ ] 3.7 [AUTH] Implement optional local CommandCode CLI credential import without retaining the source file
-- [ ] 3.8 [AUTH] Add mock-server tests for success, invalid key, state mismatch, timeout, cancellation, and provider isolation
+  - Blocked on wording: the implementation follows the spec scenario (key is validated and stored, and no copy of the source auth file is persisted), but it deliberately leaves the user's CLI source file in place. The task text says "without retaining the source file".
+- [x] 3.8 [AUTH] Add mock-server tests for success, invalid key, state mismatch, timeout, cancellation, and provider isolation
 - [ ] 3.9 [AUTH] Add secret-redaction tests across errors, logs, config output, and serialized diagnostic records
+  - Partial: error text/`Debug`, `ApiKey` formatting, and serialized identity metadata are covered. Config output, logs, rollouts, and app-server diagnostic records are not yet tested.
 
 ## 4. CommandCode Discovery and Routing
 

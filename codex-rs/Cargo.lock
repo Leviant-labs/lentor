@@ -4442,11 +4442,14 @@ name = "codex-provider-auth"
 version = "0.0.0"
 dependencies = [
  "codex-keyring-store",
+ "codex-protocol",
+ "keyring",
  "pretty_assertions",
  "rand 0.9.3",
  "reqwest 0.12.28",
  "serde",
  "serde_json",
+ "tempfile",
  "thiserror 2.0.18",
  "tokio",
  "url",
