@@ -39,7 +39,7 @@ fn apps_route_is_unavailable_for_every_auth_mode() {
 }
 
 #[test]
-fn app_mcp_routing_clears_apps_when_apps_route_is_unavailable() {
+fn app_mcp_routing_preserves_metadata_when_apps_route_is_unavailable() {
     let mut apps = vec![app("linear")];
     let mut mcp_servers = mcp_servers([("linear", 1), ("docs", 2)]);
 
@@ -50,7 +50,7 @@ fn app_mcp_routing_clears_apps_when_apps_route_is_unavailable() {
         /*plugin_active*/ true,
     );
 
-    assert!(apps.is_empty());
+    assert_eq!(sorted_app_names(&apps), vec!["linear".to_string()]);
     assert_eq!(
         sorted_mcp_server_names(&mcp_servers),
         vec!["docs".to_string(), "linear".to_string()]
@@ -58,7 +58,7 @@ fn app_mcp_routing_clears_apps_when_apps_route_is_unavailable() {
 }
 
 #[test]
-fn app_mcp_routing_keeps_mcp_and_clears_apps_without_apps_runtime() {
+fn app_mcp_routing_preserves_apps_and_mcp_without_apps_runtime() {
     let mut apps = vec![app("linear"), app("notion")];
     let mut mcp_servers = mcp_servers([("linear", 1), ("docs", 2), ("notion", 3)]);
 
@@ -69,7 +69,10 @@ fn app_mcp_routing_keeps_mcp_and_clears_apps_without_apps_runtime() {
         /*plugin_active*/ true,
     );
 
-    assert_eq!(sorted_app_names(&apps), Vec::<String>::new());
+    assert_eq!(
+        sorted_app_names(&apps),
+        vec!["linear".to_string(), "notion".to_string()]
+    );
     assert_eq!(
         sorted_mcp_server_names(&mcp_servers),
         vec![
@@ -81,7 +84,7 @@ fn app_mcp_routing_keeps_mcp_and_clears_apps_without_apps_runtime() {
 }
 
 #[test]
-fn app_mcp_routing_clears_apps_when_plugin_is_inactive() {
+fn app_mcp_routing_preserves_metadata_when_plugin_is_inactive() {
     let mut apps = vec![app("linear")];
     let mut mcp_servers = mcp_servers([("linear", 1), ("docs", 2)]);
 
@@ -92,7 +95,7 @@ fn app_mcp_routing_clears_apps_when_plugin_is_inactive() {
         /*plugin_active*/ false,
     );
 
-    assert!(apps.is_empty());
+    assert_eq!(sorted_app_names(&apps), vec!["linear".to_string()]);
     assert_eq!(
         sorted_mcp_server_names(&mcp_servers),
         vec!["docs".to_string(), "linear".to_string()]

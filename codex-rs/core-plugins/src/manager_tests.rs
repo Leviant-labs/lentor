@@ -486,7 +486,10 @@ async fn plugin_auth_projection_hides_apps_without_chatgpt_auth() {
         .find(|plugin| plugin.config_name == "sample@test")
         .expect("sample plugin summary should exist");
     assert_eq!(sample.mcp_server_names, vec!["sample".to_string()]);
-    assert!(sample.app_connector_ids.is_empty());
+    assert_eq!(
+        sample.app_connector_ids,
+        vec![AppConnectorId("connector_sample".to_string())]
+    );
 }
 
 #[tokio::test]
@@ -503,20 +506,17 @@ async fn plugin_auth_projection_hides_matching_mcp_with_chatgpt_apps_route() {
 
     let outcome = manager.plugins_for_config(&config).await;
 
-    assert_eq!(
-        outcome.effective_apps(),
-        vec![AppConnectorId("connector_sample".to_string())]
-    );
+    assert_eq!(outcome.effective_apps(), Vec::<AppConnectorId>::new());
     assert_eq!(
         sorted_effective_mcp_server_names(&outcome),
-        vec!["docs".to_string()]
+        vec!["docs".to_string(), "sample".to_string()]
     );
     let sample = outcome
         .capability_summaries()
         .iter()
         .find(|plugin| plugin.config_name == "sample@test")
         .expect("sample plugin summary should exist");
-    assert!(sample.mcp_server_names.is_empty());
+    assert_eq!(sample.mcp_server_names, vec!["sample".to_string()]);
     assert_eq!(
         sample.app_connector_ids,
         vec![AppConnectorId("connector_sample".to_string())]
@@ -564,22 +564,18 @@ async fn agent_plugin_app_routing_respects_marketplace_and_auth() {
             Some(AuthMode::Chatgpt),
         )
         .await;
-        let expected_apps = if uses_apps {
+        let declared_apps = if uses_apps {
             vec![AppConnectorId("connector_sample".to_string())]
         } else {
             Vec::new()
         };
-        let expected_mcp = if uses_apps {
-            vec!["unrelated".to_string()]
-        } else {
-            vec!["sample".to_string(), "unrelated".to_string()]
-        };
-        assert_eq!(outcome.effective_apps(), expected_apps);
+        let expected_mcp = vec!["sample".to_string(), "unrelated".to_string()];
+        assert!(outcome.effective_apps().is_empty());
         assert_eq!(sorted_effective_mcp_server_names(&outcome), expected_mcp);
         let [summary] = outcome.capability_summaries() else {
             panic!("expected one installed plugin");
         };
-        assert_eq!(summary.app_connector_ids, expected_apps);
+        assert_eq!(summary.app_connector_ids, declared_apps);
         assert_eq!(summary.mcp_server_names, expected_mcp);
 
         // Remote curated plugins are not selected in API-key mode, but the standalone
@@ -613,13 +609,10 @@ async fn plugin_auth_projection_hides_dual_surface_mcp_with_agent_identity_apps_
 
     let outcome = manager.plugins_for_config(&config).await;
 
-    assert_eq!(
-        outcome.effective_apps(),
-        vec![AppConnectorId("connector_sample".to_string())]
-    );
+    assert_eq!(outcome.effective_apps(), Vec::<AppConnectorId>::new());
     assert_eq!(
         sorted_effective_mcp_server_names(&outcome),
-        vec!["docs".to_string()]
+        vec!["docs".to_string(), "sample".to_string()]
     );
 }
 
@@ -638,10 +631,7 @@ async fn plugin_auth_projection_keeps_non_conflicting_mcp_with_chatgpt_apps_rout
 
     let outcome = manager.plugins_for_config(&config).await;
 
-    assert_eq!(
-        outcome.effective_apps(),
-        vec![AppConnectorId("connector_sample".to_string())]
-    );
+    assert_eq!(outcome.effective_apps(), Vec::<AppConnectorId>::new());
     assert_eq!(
         sorted_effective_mcp_server_names(&outcome),
         vec!["docs".to_string(), "sample".to_string()]
@@ -721,20 +711,20 @@ enabled = true
 
     let outcome = manager.plugins_for_config(&config).await;
 
-    assert_eq!(
-        outcome.effective_apps(),
-        vec![AppConnectorId("connector_shared".to_string())]
-    );
+    assert_eq!(outcome.effective_apps(), Vec::<AppConnectorId>::new());
     assert_eq!(
         sorted_effective_mcp_server_names(&outcome),
-        vec!["other".to_string()]
+        vec!["foo".to_string(), "foo2".to_string(), "other".to_string()]
     );
     let sample = outcome
         .capability_summaries()
         .iter()
         .find(|plugin| plugin.config_name == "sample@test")
         .expect("sample plugin summary should exist");
-    assert_eq!(sample.mcp_server_names, vec!["other".to_string()]);
+    assert_eq!(
+        sample.mcp_server_names,
+        vec!["foo".to_string(), "foo2".to_string(), "other".to_string()]
+    );
     assert_eq!(
         sample.app_connector_ids,
         vec![AppConnectorId("connector_shared".to_string())]
@@ -758,11 +748,11 @@ async fn plugin_auth_projection_reprojects_cached_plugins_when_auth_changes() {
     let chatgpt_outcome = manager.plugins_for_config(&config).await;
     assert_eq!(
         sorted_effective_mcp_server_names(&chatgpt_outcome),
-        vec!["docs".to_string()]
+        vec!["docs".to_string(), "sample".to_string()]
     );
     assert_eq!(
         chatgpt_outcome.effective_apps(),
-        vec![AppConnectorId("connector_sample".to_string())]
+        Vec::<AppConnectorId>::new()
     );
     assert_eq!(
         chatgpt_outcome.capability_summaries(),
@@ -782,7 +772,7 @@ async fn plugin_auth_projection_reprojects_cached_plugins_when_auth_changes() {
                 plugin_namespace: Some("sample".to_string()),
                 description: None,
                 has_skills: false,
-                mcp_server_names: Vec::new(),
+                mcp_server_names: vec!["sample".to_string()],
                 app_connector_ids: vec![AppConnectorId("connector_sample".to_string())],
             },
         ]
@@ -815,7 +805,7 @@ async fn plugin_auth_projection_reprojects_cached_plugins_when_auth_changes() {
                 description: None,
                 has_skills: false,
                 mcp_server_names: vec!["sample".to_string()],
-                app_connector_ids: Vec::new(),
+                app_connector_ids: vec![AppConnectorId("connector_sample".to_string())],
             },
         ]
     );
@@ -1100,10 +1090,7 @@ async fn load_plugins_loads_default_skills_and_mcp_servers() {
         vec![plugin_root.join("skills").abs()]
     );
     assert_eq!(outcome.effective_mcp_servers().len(), 1);
-    assert_eq!(
-        outcome.effective_apps(),
-        vec![AppConnectorId("connector_example".to_string())]
-    );
+    assert_eq!(outcome.effective_apps(), Vec::<AppConnectorId>::new());
 }
 
 #[tokio::test]
@@ -2798,13 +2785,7 @@ async fn effective_apps_dedupes_connector_ids_across_plugins() {
     let outcome =
         load_plugins_from_config(&config_toml, codex_home.path(), Some(AuthMode::Chatgpt)).await;
 
-    assert_eq!(
-        outcome.effective_apps(),
-        vec![
-            AppConnectorId("connector_example".to_string()),
-            AppConnectorId("connector_gmail".to_string()),
-        ]
-    );
+    assert_eq!(outcome.effective_apps(), Vec::<AppConnectorId>::new());
 }
 
 #[tokio::test]
@@ -2843,13 +2824,7 @@ async fn effective_apps_preserves_app_config_order() {
     )
     .await;
 
-    assert_eq!(
-        outcome.effective_apps(),
-        vec![
-            AppConnectorId("connector_slack".to_string()),
-            AppConnectorId("connector_github".to_string()),
-        ]
-    );
+    assert_eq!(outcome.effective_apps(), Vec::<AppConnectorId>::new());
 }
 
 #[test]
@@ -3150,7 +3125,7 @@ async fn plugin_defaults_resolve_remote_enablement_and_separate_cache_entries() 
             loaded.effective_plugin_skill_roots().len(),
             expected_names.len()
         );
-        assert_eq!(loaded.effective_apps().len(), expected_names.len());
+        assert!(loaded.effective_apps().is_empty());
         assert!(loaded.plugins().iter().all(|plugin| plugin.error.is_none()));
     };
 
@@ -4381,7 +4356,7 @@ plugins = true
     .unwrap();
     assert_eq!(
         chatgpt_outcome.plugin.mcp_server_names,
-        vec!["other-mcp".to_string()]
+        vec!["other-mcp".to_string(), "sample-mcp".to_string()]
     );
     assert_eq!(
         chatgpt_outcome.plugin.apps,
@@ -4400,7 +4375,10 @@ plugins = true
         api_key_outcome.plugin.mcp_server_names,
         vec!["other-mcp".to_string(), "sample-mcp".to_string()]
     );
-    assert!(api_key_outcome.plugin.apps.is_empty());
+    assert_eq!(
+        api_key_outcome.plugin.apps,
+        vec![AppConnectorId("connector_sample".to_string())]
+    );
 
     let no_auth_outcome = test_plugins_manager_with_options(
         tmp.path().to_path_buf(),
@@ -4414,7 +4392,10 @@ plugins = true
         no_auth_outcome.plugin.mcp_server_names,
         vec!["other-mcp".to_string(), "sample-mcp".to_string()]
     );
-    assert!(no_auth_outcome.plugin.apps.is_empty());
+    assert_eq!(
+        no_auth_outcome.plugin.apps,
+        vec![AppConnectorId("connector_sample".to_string())]
+    );
 }
 
 #[tokio::test]

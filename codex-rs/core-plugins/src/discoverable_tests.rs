@@ -293,7 +293,7 @@ source = {marketplace_root:?}
             "Plugin that includes skills, MCP servers, and app connectors".to_string(),
         ),
         has_skills: true,
-        mcp_server_names: Vec::new(),
+        mcp_server_names: vec!["sample-docs".to_string()],
         app_connector_ids: vec!["connector_sample".to_string()],
     };
     assert_eq!(chatgpt_projection, vec![expected.clone()]);
@@ -309,7 +309,7 @@ source = {marketplace_root:?}
         api_key_projection,
         vec![ToolSuggestDiscoverablePlugin {
             mcp_server_names: vec!["sample-docs".to_string()],
-            app_connector_ids: Vec::new(),
+            app_connector_ids: vec!["connector_sample".to_string()],
             ..expected
         }]
     );

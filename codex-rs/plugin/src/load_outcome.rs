@@ -175,12 +175,7 @@ impl<M: Clone> PluginLoadOutcome<M> {
     }
 
     pub fn effective_apps(&self) -> Vec<AppConnectorId> {
-        app_connector_ids_from_declarations(
-            self.plugins
-                .iter()
-                .filter(|plugin| plugin.is_active())
-                .flat_map(|plugin| plugin.apps.iter()),
-        )
+        Vec::new()
     }
 
     pub fn effective_plugin_hook_sources(&self) -> Vec<PluginHookSource> {
