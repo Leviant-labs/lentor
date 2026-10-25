@@ -28,6 +28,7 @@
 - [x] 3.8 [AUTH] Add mock-server tests for success, invalid key, state mismatch, timeout, cancellation, and provider isolation
 - [ ] 3.9 [AUTH] Add secret-redaction tests across errors, logs, config output, and serialized diagnostic records
   - Partial: error text/`Debug`, `ApiKey` formatting, and serialized identity metadata are covered. Config output, logs, rollouts, and app-server diagnostic records are not yet tested.
+- [ ] 3.10 [AUTH] Treat an environment-variable key reference as its own credential source with distinct identity provenance, and test a populated variable through `whoami` validation and storage
 
 ## 4. CommandCode Discovery and Routing
 
@@ -37,6 +38,7 @@
 - [ ] 4.4 [TRANSPORT] Reject unknown, empty, or mutually unsupported route sets before request construction
 - [ ] 4.5 [TRANSPORT] Add discovery fixtures for complete, sparse, oversized, malformed, and unavailable responses
 - [ ] 4.6 [TRANSPORT] Expose selected provider, model, route, and catalog state through the existing model-provider boundary
+- [ ] 4.7 [TRANSPORT] Select `commandcode` when no `model_provider` is configured, keep an explicit provider authoritative without contacting CommandCode, and test both precedence paths
 
 ## 5. CommandCode Wire Adapters
 
@@ -51,6 +53,7 @@
 - [ ] 5.9 [TRANSPORT] Map 401, 403, 422, 429, and retryable 5xx responses into bounded provider errors
 - [ ] 5.10 [TRANSPORT] Add captured request/stream fixtures for every route and terminal failure class
 - [ ] 5.11 [TRANSPORT] Add direct-network integration tests proving no proxy or OpenAI fallback route is used
+- [ ] 5.12 [TRANSPORT] Preserve the final provider status and request ID on terminal failures, and map zero-retention rejections to a distinct redacted error
 
 ## 6. Plugin Preservation and ChatGPT App Boundary
 
@@ -61,6 +64,7 @@
 - [ ] 6.5 [PLUGINS] Make `paths.apps` parse and serialize while remaining inert at runtime
 - [ ] 6.6 [PLUGINS] Produce capability metadata separating available plugin support from disabled ChatGPT Apps
 - [ ] 6.7 [PLUGINS] Add regressions proving an app-declaring plugin still loads all non-app resources
+- [ ] 6.8 [PLUGINS] Test marketplace add, list, install, update, and remove operations without ChatGPT App service traffic
 
 ## 7. Optional Account Services
 
@@ -69,7 +73,7 @@
 - [ ] 7.3 [ACCOUNT] Preserve account status, usage, limits, and credits only in enabled mode
 - [ ] 7.4 [ACCOUNT] Keep CommandCode auth and transport independent of account capability state
 - [ ] 7.5 [ACCOUNT] Keep ChatGPT Apps disabled even when account services are enabled
-- [ ] 7.6 [ACCOUNT] Add no-network tests for disabled mode and full account reporting tests for enabled mode
+- [ ] 7.6 [ACCOUNT] Add no-network tests for disabled mode, full account reporting tests for enabled mode, and a key-only CommandCode session that discovers models and answers a turn with no Codex or ChatGPT login
 - [ ] 7.7 [ACCOUNT] Add account-outage isolation tests with CommandCode inference active
 
 ## 8. CLI and TUI Integration
