@@ -79,6 +79,7 @@ members = [
     "ext/web-search",
     "external-agent-migration",
     "keyring-store",
+    "provider-auth",
     "file-search",
     "file-watcher",
     "linux-sandbox",
@@ -250,6 +251,7 @@ codex-guardian-context = { path = "guardian-context" }
 codex-hooks = { path = "hooks" }
 codex-history = { path = "history" }
 codex-keyring-store = { path = "keyring-store" }
+codex-provider-auth = { path = "provider-auth" }
 codex-linux-sandbox = { path = "linux-sandbox" }
 codex-lmstudio = { path = "lmstudio" }
 codex-login = { path = "login" }
