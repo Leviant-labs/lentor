@@ -18,6 +18,7 @@ chrono = { workspace = true }
 codex-api = { workspace = true }
 codex-agent-identity = { workspace = true }
 codex-aws-auth = { workspace = true }
+codex-command-code-provider = { workspace = true }
 codex-http-client = { workspace = true }
 codex-feedback = { workspace = true }
 codex-login = { workspace = true }

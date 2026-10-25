@@ -22,6 +22,7 @@ use codex_protocol::account::ProviderAccount;
 use codex_protocol::error::CodexErr;
 use codex_protocol::openai_models::ModelsResponse;
 
+use crate::CommandCodeProviderBoundary;
 use crate::ProviderCapabilities;
 #[cfg(test)]
 use crate::RemoteCompactionSupport;
@@ -116,6 +117,15 @@ pub const DEFAULT_MEMORY_CONSOLIDATION_PREFERRED_MODEL: &str = "gpt-5.6-terra";
 pub trait ModelProvider: fmt::Debug + Send + Sync {
     /// Returns the configured provider metadata.
     fn info(&self) -> &ModelProviderInfo;
+
+    /// Returns CommandCode discovery and route selection for this provider.
+    ///
+    /// The boundary is created for CommandCode provider metadata and shared with
+    /// callers without performing network I/O. Providers that are not backed by
+    /// CommandCode return `None`.
+    fn command_code_boundary(&self) -> Option<Arc<CommandCodeProviderBoundary>> {
+        None
+    }
 
     /// Returns whether the resolved Responses provider may receive internal tool metadata.
     fn include_internal_metadata(&self, provider: &Provider) -> bool {
@@ -372,6 +382,7 @@ struct ConfiguredModelProvider {
     auth_manager: Option<Arc<AuthManager>>,
     // Construct eagerly; report setup failures when auth is requested because the factory is infallible.
     gateway_auth_manager: Option<Result<Arc<GatewayAuthManager>, String>>,
+    command_code_boundary: Option<Arc<CommandCodeProviderBoundary>>,
 }
 
 enum ModelsCacheConfig {
@@ -386,10 +397,14 @@ impl ConfiguredModelProvider {
         auth_manager: Option<Arc<AuthManager>>,
         gateway_auth_manager: Option<Result<Arc<GatewayAuthManager>, String>>,
     ) -> Self {
+        let command_code_boundary = info
+            .is_command_code()
+            .then(|| Arc::new(CommandCodeProviderBoundary::new(info.clone())));
         Self {
             info,
             auth_manager,
             gateway_auth_manager,
+            command_code_boundary,
         }
     }
 
@@ -431,6 +446,10 @@ impl ConfiguredModelProvider {
 impl ModelProvider for ConfiguredModelProvider {
     fn info(&self) -> &ModelProviderInfo {
         &self.info
+    }
+
+    fn command_code_boundary(&self) -> Option<Arc<CommandCodeProviderBoundary>> {
+        self.command_code_boundary.clone()
     }
 
     fn capabilities(&self) -> ProviderCapabilities {

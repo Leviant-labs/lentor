@@ -505,6 +505,45 @@ fn test_built_in_model_providers_include_amazon_bedrock_endpoints() {
 }
 
 #[test]
+fn test_built_in_model_providers_include_command_code_contract() {
+    let providers = built_in_model_providers(/*openai_base_url*/ None);
+    let command_code = providers
+        .get(COMMAND_CODE_PROVIDER_ID)
+        .expect("CommandCode provider should be built in");
+
+    assert_eq!(
+        command_code.base_url.as_deref(),
+        Some(COMMAND_CODE_PROVIDER_BASE_URL)
+    );
+    assert!(!command_code.requires_openai_auth);
+    assert!(command_code.is_command_code());
+    assert_eq!(
+        command_code
+            .capabilities
+            .as_ref()
+            .and_then(|capabilities| capabilities.contract.clone()),
+        Some(ProviderContract {
+            kind: ProviderKind::CommandCode,
+            capabilities: ProviderCapabilities {
+                account_services: AccountServices::Disabled,
+                command_code_auth_source: Some(CommandCodeAuthSource::ApiKey),
+                command_code_model_routes: vec![
+                    CommandCodeRoute::Responses,
+                    CommandCodeRoute::ChatCompletions,
+                    CommandCodeRoute::AnthropicMessages,
+                ],
+            },
+        })
+    );
+    assert!(
+        !providers
+            .get(OPENAI_PROVIDER_ID)
+            .expect("OpenAI provider should be built in")
+            .is_command_code()
+    );
+}
+
+#[test]
 fn test_built_in_model_providers_include_amazon_bedrock_runtime() {
     let providers = built_in_model_providers(/*openai_base_url*/ None);
     let runtime = providers

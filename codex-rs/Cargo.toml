@@ -80,6 +80,7 @@ members = [
     "external-agent-migration",
     "keyring-store",
     "provider-auth",
+    "command-code-provider",
     "file-search",
     "file-watcher",
     "linux-sandbox",
@@ -252,6 +253,7 @@ codex-hooks = { path = "hooks" }
 codex-history = { path = "history" }
 codex-keyring-store = { path = "keyring-store" }
 codex-provider-auth = { path = "provider-auth" }
+codex-command-code-provider = { path = "command-code-provider" }
 codex-linux-sandbox = { path = "linux-sandbox" }
 codex-lmstudio = { path = "lmstudio" }
 codex-login = { path = "login" }

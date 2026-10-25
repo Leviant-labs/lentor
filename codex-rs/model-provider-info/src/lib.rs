@@ -92,6 +92,7 @@ pub const CHATGPT_CODEX_BASE_URL: &str = "https://chatgpt.com/backend-api/codex"
 const AMAZON_BEDROCK_PROVIDER_NAME: &str = "Amazon Bedrock";
 pub const AMAZON_BEDROCK_PROVIDER_ID: &str = "amazon-bedrock";
 const AMAZON_BEDROCK_RUNTIME_PROVIDER_NAME: &str = "Amazon Bedrock Runtime";
+const COMMAND_CODE_PROVIDER_NAME: &str = "CommandCode";
 pub const AMAZON_BEDROCK_RUNTIME_PROVIDER_ID: &str = "amazon-bedrock-runtime";
 pub const AMAZON_BEDROCK_GPT_5_5_MODEL_ID: &str = "openai.gpt-5.5";
 pub const AMAZON_BEDROCK_GPT_5_6_SOL_MODEL_ID: &str = "openai.gpt-5.6-sol";
@@ -583,6 +584,53 @@ other non-default provider fields are not supported"
         }
     }
 
+    /// Creates the built-in direct CommandCode provider.
+    ///
+    /// The provider has no default credential source of its own: authenticated
+    /// requests resolve credentials through the provider-scoped CommandCode
+    /// authentication layer, and requests made without a credential fail with a
+    /// provider-scoped error instead of falling back to another provider.
+    pub fn create_command_code_provider() -> ModelProviderInfo {
+        ModelProviderInfo {
+            name: COMMAND_CODE_PROVIDER_NAME.into(),
+            base_url: Some(COMMAND_CODE_PROVIDER_BASE_URL.to_string()),
+            model_catalog_url: None,
+            env_key: None,
+            env_key_instructions: None,
+            experimental_bearer_token: None,
+            auth: None,
+            gateway_oauth: None,
+            aws: None,
+            wire_api: WireApi::Responses,
+            query_params: None,
+            http_headers: None,
+            env_http_headers: None,
+            request_max_retries: None,
+            stream_max_retries: None,
+            stream_idle_timeout_ms: None,
+            websocket_connect_timeout_ms: None,
+            requires_openai_auth: false,
+            supports_websockets: false,
+            supports_standalone_web_search: false,
+            capabilities: Some(ModelProviderCapabilities {
+                contract: Some(ProviderContract {
+                    kind: ProviderKind::CommandCode,
+                    capabilities: ProviderCapabilities {
+                        account_services: AccountServices::Disabled,
+                        command_code_auth_source: Some(CommandCodeAuthSource::ApiKey),
+                        command_code_model_routes: vec![
+                            CommandCodeRoute::Responses,
+                            CommandCodeRoute::ChatCompletions,
+                            CommandCodeRoute::AnthropicMessages,
+                        ],
+                    },
+                }),
+                ..Default::default()
+            }),
+            include_internal_metadata: false,
+        }
+    }
+
     pub fn create_amazon_bedrock_provider(
         aws: Option<ModelProviderAwsAuthInfo>,
     ) -> ModelProviderInfo {
@@ -663,6 +711,14 @@ other non-default provider fields are not supported"
         self.name == AMAZON_BEDROCK_RUNTIME_PROVIDER_NAME
     }
 
+    /// Returns whether this provider uses the direct CommandCode contract.
+    pub fn is_command_code(&self) -> bool {
+        self.capabilities
+            .as_ref()
+            .and_then(|capabilities| capabilities.contract.as_ref())
+            .is_some_and(|contract| contract.kind == ProviderKind::CommandCode)
+    }
+
     pub fn has_command_auth(&self) -> bool {
         self.auth.is_some()
     }
@@ -690,6 +746,7 @@ pub fn built_in_model_providers(
     // `model_providers` in config.toml to add their own providers.
     [
         (OPENAI_PROVIDER_ID, openai_provider),
+        (COMMAND_CODE_PROVIDER_ID, P::create_command_code_provider()),
         (AMAZON_BEDROCK_PROVIDER_ID, amazon_bedrock_provider),
         (
             AMAZON_BEDROCK_RUNTIME_PROVIDER_ID,

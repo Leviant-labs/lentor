@@ -32,13 +32,14 @@
 
 ## 4. CommandCode Discovery and Routing
 
-- [ ] 4.1 [TRANSPORT] Register the direct `commandcode` provider with base URL `https://api.commandcode.ai/provider/v1`
-- [ ] 4.2 [TRANSPORT] Implement bounded `/provider/v1/models` retrieval with response-size and model-count caps
-- [ ] 4.3 [TRANSPORT] Parse sparse model metadata and normalize `supported_endpoints` into `CommandCodeRoute`
-- [ ] 4.4 [TRANSPORT] Reject unknown, empty, or mutually unsupported route sets before request construction
-- [ ] 4.5 [TRANSPORT] Add discovery fixtures for complete, sparse, oversized, malformed, and unavailable responses
-- [ ] 4.6 [TRANSPORT] Expose selected provider, model, route, and catalog state through the existing model-provider boundary
+- [x] 4.1 [TRANSPORT] Register the direct `commandcode` provider with base URL `https://api.commandcode.ai/provider/v1`
+- [x] 4.2 [TRANSPORT] Implement bounded `/provider/v1/models` retrieval with response-size and model-count caps
+- [x] 4.3 [TRANSPORT] Parse sparse model metadata and normalize `supported_endpoints` into `CommandCodeRoute`
+- [x] 4.4 [TRANSPORT] Reject unknown, empty, or mutually unsupported route sets before request construction
+- [x] 4.5 [TRANSPORT] Add discovery fixtures for complete, sparse, oversized, malformed, and unavailable responses
+- [x] 4.6 [TRANSPORT] Expose selected provider, model, route, and catalog state through the existing model-provider boundary
 - [ ] 4.7 [TRANSPORT] Select `commandcode` when no `model_provider` is configured, keep an explicit provider authoritative without contacting CommandCode, and test both precedence paths
+  - Partial: `select_provider` implements and tests both precedence paths, and discovery only runs through the explicit CommandCode boundary. The effective default provider is still `openai` until task 10.3 wires the config default.
 
 ## 5. CommandCode Wire Adapters
 

@@ -2814,6 +2814,20 @@ name = "codex-collaboration-mode-templates"
 version = "0.0.0"
 
 [[package]]
+name = "codex-command-code-provider"
+version = "0.0.0"
+dependencies = [
+ "codex-model-provider-info",
+ "codex-protocol",
+ "pretty_assertions",
+ "reqwest 0.12.28",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tokio",
+ "wiremock",
+]
+
+[[package]]
 name = "codex-config"
 version = "0.0.0"
 dependencies = [
@@ -4115,6 +4129,7 @@ dependencies = [
  "codex-agent-identity",
  "codex-api",
  "codex-aws-auth",
+ "codex-command-code-provider",
  "codex-feedback",
  "codex-http-client",
  "codex-keyring-store",
