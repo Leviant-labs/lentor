@@ -98,3 +98,30 @@ The tasks file defines five bounded stages: baseline, Responses inference proof,
 - Sparse `/models` rows may not advertise reasoning levels: distinguish unknown capabilities from unsupported ones and support explicit per-model capability settings.
 - The prior branches are separate: branch-local tests do not prove the combined release.
 - The existing schema was edited manually and dependency manifests changed without a Bazel lock update: reconcile generated files for whichever baseline is actually retained.
+
+## PR Plan
+
+### PR 1: Secure generic provider credentials
+- **Description:** Add endpoint-bound keyring references and reuse the provider auth boundary for discovery and inference.
+- **Files/components affected:** model-provider-info, model-provider credential/auth/identity modules, mechanical provider initializers
+- **Dependencies:** None
+
+### PR 2: Generic catalog discovery
+- **Description:** Accept bounded sparse provider catalogs, preserve model IDs and advertised reasoning metadata, and expose authoritative provider-scoped refresh state.
+- **Files/components affected:** model-provider models endpoint, models-manager, focused catalog tests
+- **Dependencies:** None
+
+### PR 3: App-server provider setup
+- **Description:** Expose secure endpoint/key setup through v2 and existing model/config APIs; connect generic discovery to configured providers.
+- **Files/components affected:** app-server-protocol v2, app-server provider/config/catalog processors, API integration tests and schema fixtures
+- **Dependencies:** PR 1, PR 2
+
+### PR 4: TUI provider setup and model controls
+- **Description:** Add endpoint/key entry, /models selection, discovery refresh/error states, and supported reasoning controls using the shared backend.
+- **Files/components affected:** TUI provider setup modules, slash/model routing, snapshots
+- **Dependencies:** PR 3
+
+### PR 5: Agent and combined-boundary verification
+- **Description:** Verify text/tool/continuation/reasoning behavior, retained plugin isolation, optional account boundaries, Windows checks, schemas, and delivery evidence.
+- **Files/components affected:** core integration tests, app-server/plugin boundary tests, scoped CI, fork setup instructions, task checklist
+- **Dependencies:** PR 4
