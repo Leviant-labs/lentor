@@ -1189,6 +1189,11 @@ impl MessageProcessor {
             ClientRequest::ConfigBatchWrite { params, .. } => {
                 self.config_processor.batch_write(params).await.map(Some)
             }
+            ClientRequest::ModelProviderConfigure { params, .. } => self
+                .config_processor
+                .configure_model_provider(params)
+                .await
+                .map(|response| Some(response.into())),
             ClientRequest::ExperimentalFeatureEnablementSet { params, .. } => {
                 self.config_processor
                     .experimental_feature_enablement_set(request_id.clone(), params)

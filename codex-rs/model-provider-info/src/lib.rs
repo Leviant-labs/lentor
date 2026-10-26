@@ -149,6 +149,8 @@ pub struct ModelProviderInfo {
     pub model_catalog_url: Option<RedactedString>,
     /// Environment variable that stores the user's API key for this provider.
     pub env_key: Option<String>,
+    /// Reference to a provider credential stored in the operating-system keyring.
+    pub keyring_key: Option<String>,
 
     /// Optional instructions to help the user get a valid value for the
     /// variable and set it.
@@ -299,6 +301,20 @@ other non-default provider fields are not supported"
     }
 
     pub fn validate(&self) -> std::result::Result<(), String> {
+        if let Some(reference) = &self.keyring_key {
+            if reference.len() != 64 || !reference.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+                return Err("provider keyring_key must be a valid credential reference".to_string());
+            }
+            if self.base_url.is_none()
+                || self.env_key.is_some()
+                || self.experimental_bearer_token.is_some()
+                || self.auth.is_some()
+                || self.aws.is_some()
+                || self.requires_openai_auth
+            {
+                return Err("provider keyring_key requires base_url and cannot be combined with another primary credential source".to_string());
+            }
+        }
         if let Some(gateway) = &self.gateway_oauth {
             gateway.validate(self)?;
         }
@@ -531,6 +547,7 @@ other non-default provider fields are not supported"
             base_url,
             model_catalog_url: None,
             env_key: None,
+            keyring_key: None,
             env_key_instructions: None,
             experimental_bearer_token: None,
             auth: None,
@@ -578,6 +595,7 @@ other non-default provider fields are not supported"
             base_url: None,
             model_catalog_url: None,
             env_key: None,
+            keyring_key: None,
             env_key_instructions: None,
             experimental_bearer_token: None,
             auth: None,
@@ -760,6 +778,7 @@ pub fn create_oss_provider_with_base_url(base_url: &str, wire_api: WireApi) -> M
         base_url: Some(base_url.into()),
         model_catalog_url: None,
         env_key: None,
+        keyring_key: None,
         env_key_instructions: None,
         experimental_bearer_token: None,
         auth: None,

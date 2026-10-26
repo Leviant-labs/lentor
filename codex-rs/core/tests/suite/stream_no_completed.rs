@@ -53,6 +53,7 @@ async fn retries_on_early_close() {
         // ModelClient will return an error if the environment variable for the
         // provider is not set.
         env_key: Some("PATH".into()),
+        keyring_key: None,
         env_key_instructions: None,
         experimental_bearer_token: None,
         auth: None,

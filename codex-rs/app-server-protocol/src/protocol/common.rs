@@ -1143,6 +1143,11 @@ client_request_definitions! {
         serialization: None,
         response: v2::ModelListResponse,
     },
+    ModelProviderConfigure => "modelProvider/configure" {
+        params: v2::ModelProviderConfigureParams,
+        serialization: None,
+        response: v2::ModelProviderConfigureResponse,
+    },
     GatewayOAuthRead => "account/gatewayOAuth/read" {
         params: #[ts(type = "undefined")] #[serde(skip_serializing_if = "Option::is_none")] Option<()>,
         serialization: None,

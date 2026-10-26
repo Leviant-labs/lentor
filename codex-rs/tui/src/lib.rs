@@ -121,6 +121,7 @@ mod async_question_reply;
 mod backend_banners;
 mod backend_id;
 mod bottom_pane;
+mod provider_setup;
 mod branch_summary;
 mod chatwidget;
 mod cli;

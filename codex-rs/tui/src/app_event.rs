@@ -1344,6 +1344,9 @@ pub(crate) enum AppEvent {
         request_id: uuid::Uuid,
         result: Result<Vec<ModelPreset>, String>,
     },
+    OpenProviderSetup,
+    ConfigureModelProvider(codex_app_server_protocol::ModelProviderConfigureParams),
+    ModelProviderConfigured(Result<codex_app_server_protocol::ModelProviderConfigureResponse, String>),
     /// Finished the API-key compatibility check; do not check the same catalog again.
     ApiKeyCompatModelsLoaded {
         request_id: uuid::Uuid,

@@ -12,7 +12,9 @@ use strum_macros::IntoStaticStr;
 pub enum SlashCommand {
     // DO NOT ALPHA-SORT! Enum order is presentation order in the popup, so
     // more frequently used commands should be listed first.
+    #[strum(serialize = "model", serialize = "models")]
     Model,
+    Provider,
     Presets,
     Daybreak,
     Ide,
@@ -133,6 +135,7 @@ impl SlashCommand {
             SlashCommand::MemoryDrop => "DO NOT USE",
             SlashCommand::MemoryUpdate => "DO NOT USE",
             SlashCommand::Model => "choose what model and reasoning effort to use",
+            SlashCommand::Provider => "configure an API endpoint and key",
             SlashCommand::Presets => "run or save reusable prompts and slash commands",
             SlashCommand::Daybreak => "turn Daybreak on or off",
             SlashCommand::Ide => {

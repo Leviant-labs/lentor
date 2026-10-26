@@ -115,8 +115,19 @@ impl ModelCatalog {
         self.config_manager
             .check_thread_model_provider(&config)
             .await?;
-        Ok(models_manager
+        let refresh_strategy = if config.model_provider.model_catalog_url.is_some()
+            && refresh_strategy != RefreshStrategy::Offline
+        {
+            RefreshStrategy::Online
+        } else {
+            refresh_strategy
+        };
+        let models = models_manager
             .list_models(refresh_strategy, config.http_client_factory())
-            .await)
+            .await;
+        if let Some(error) = models_manager.catalog_error() {
+            return Err(std::io::Error::other(error));
+        }
+        Ok(models)
     }
 }

@@ -237,6 +237,9 @@ pub(crate) fn auth_manager_for_provider(
     auth_manager: Option<Arc<AuthManager>>,
     provider: &ModelProviderInfo,
 ) -> Option<Arc<AuthManager>> {
+    if provider.keyring_key.is_some() {
+        return None;
+    }
     match provider.auth.clone() {
         Some(config) => Some(AuthManager::external_bearer_only(config)),
         None => auth_manager,
@@ -341,6 +344,14 @@ fn should_bootstrap_chatgpt_agent_identity(
 fn bearer_auth_for_provider(
     provider: &ModelProviderInfo,
 ) -> codex_protocol::error::Result<Option<BearerAuthProvider>> {
+    if let Some(reference) = &provider.keyring_key {
+        let base_url = provider.base_url.as_deref().ok_or_else(|| {
+            CodexErr::InvalidRequest("keyring provider requires an API base URL".to_string())
+        })?;
+        let key = crate::provider_credentials::load_provider_api_key(reference, base_url)
+            .map_err(|error| CodexErr::InvalidRequest(error.to_string()))?;
+        return Ok(Some(BearerAuthProvider::new(key)));
+    }
     if let Some(api_key) = provider.api_key()? {
         return Ok(Some(BearerAuthProvider::new(api_key)));
     }

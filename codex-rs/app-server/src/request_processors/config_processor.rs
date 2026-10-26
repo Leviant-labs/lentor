@@ -65,6 +65,8 @@ use std::path::PathBuf;
 const BACKGROUND_PAGINATED_ROLLOUT_MIGRATION_FEATURE: &str =
     "background_paginated_rollout_migration";
 
+mod provider_setup;
+
 const SUPPORTED_EXPERIMENTAL_FEATURE_ENABLEMENT: &[&str] = &[
     "api_key_cyber_access_programs",
     "api_key_model_discovery",

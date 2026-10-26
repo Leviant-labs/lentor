@@ -70,8 +70,9 @@ pub(crate) fn identity(
                 ) && (auth.get_chatgpt_user_id().is_some() || auth.get_account_email().is_some())
             }
     });
-    let explicit_bearer =
-        provider_info.api_key()?.is_some() || provider_info.experimental_bearer_token.is_some();
+    let explicit_bearer = provider_info.api_key()?.is_some()
+        || provider_info.keyring_key.is_some()
+        || provider_info.experimental_bearer_token.is_some();
     // Command auth also returns opaque API keys. A changed key may belong to a
     // different account, so reuse requires stable owner metadata. Explicit provider
     // keys take precedence over the header auth's account identity.

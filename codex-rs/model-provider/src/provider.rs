@@ -646,6 +646,7 @@ mod tests {
             base_url: Some(base_url),
             model_catalog_url: None,
             env_key: None,
+            keyring_key: None,
             env_key_instructions: None,
             experimental_bearer_token: None,
             auth: None,

@@ -6,6 +6,7 @@ mod combined_auth;
 mod models_endpoint;
 mod models_identity;
 mod provider;
+mod provider_credentials;
 mod shared_state;
 pub mod test_support;
 mod workspace_routing;
@@ -40,6 +41,9 @@ pub use provider::ProviderAuthRecoveryMessages;
 pub use provider::ProviderUnauthorizedRecovery;
 pub use provider::SharedModelProvider;
 pub use provider::create_model_provider;
+pub use provider_credentials::ProviderCredentialError;
+pub use provider_credentials::delete_provider_api_key;
+pub use provider_credentials::store_provider_api_key;
 
 #[cfg(test)]
 #[path = "workspace_routing_tests.rs"]

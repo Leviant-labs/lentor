@@ -117,6 +117,10 @@ type SharedModelsEndpointClient = Arc<dyn ModelsEndpointClient>;
 
 /// Coordinates model discovery plus cached metadata on disk.
 pub trait ModelsManager: fmt::Debug + Send + Sync {
+    /// Latest provider-catalog refresh failure, already safe for user-facing diagnostics.
+    fn catalog_error(&self) -> Option<String> {
+        None
+    }
     /// Supply startup API-key discovery policy; live changes require a new session.
     /// Static catalogs ignore this setting.
     fn set_api_key_model_discovery_enabled(&self, _enabled: bool) {}
@@ -294,6 +298,7 @@ pub struct OpenAiModelsManager {
     catalog_source: CatalogSource,
     api_key_model_discovery_enabled: AtomicBool,
     auth_manager: Option<Arc<AuthManager>>,
+    catalog_error: std::sync::RwLock<Option<String>>,
 }
 
 /// Static model manager backed by an authoritative in-process catalog.
@@ -359,6 +364,7 @@ impl OpenAiModelsManager {
             endpoint_client,
             catalog_source: CatalogSource::Default,
             auth_manager,
+            catalog_error: std::sync::RwLock::new(None),
         }
     }
 
@@ -382,6 +388,9 @@ impl StaticModelsManager {
 }
 
 impl ModelsManager for OpenAiModelsManager {
+    fn catalog_error(&self) -> Option<String> {
+        self.catalog_error.read().unwrap_or_else(std::sync::PoisonError::into_inner).clone()
+    }
     fn set_api_key_model_discovery_enabled(&self, enabled: bool) {
         self.api_key_model_discovery_enabled
             .store(enabled, Ordering::SeqCst);
@@ -502,10 +511,14 @@ impl OpenAiModelsManager {
         refresh_strategy: RefreshStrategy,
         http_client_factory: HttpClientFactory,
     ) -> ModelsResponse {
-        if let Err(err) = self
+        let refresh = self
             .refresh_available_models(refresh_strategy, &http_client_factory)
-            .await
-        {
+            .await;
+        if matches!(&self.catalog_source, CatalogSource::ExplicitProvider(_)) {
+            *self.catalog_error.write().unwrap_or_else(std::sync::PoisonError::into_inner) =
+                refresh.as_ref().err().map(ToString::to_string);
+        }
+        if let Err(err) = refresh {
             error!("failed to refresh available models: {err}");
         }
         ModelsResponse {

@@ -46,6 +46,8 @@ const MODELS_ENDPOINT: &str = "/models";
 // Bound downloads from explicitly configured catalogs before decoding or caching them.
 const MAX_MODEL_CATALOG_BYTES: usize = 1024 * 1024;
 
+mod provider_catalog;
+
 /// Provider-owned OpenAI-compatible `/models` endpoint.
 #[derive(Debug)]
 pub(crate) struct OpenAiModelsEndpoint {
@@ -161,9 +163,14 @@ impl OpenAiModelsEndpoint {
                 .model_catalog_url
                 .as_ref()
                 .map(|_| MAX_MODEL_CATALOG_BYTES);
-            client
-                .list_models(request_url, HeaderMap::new(), response_body_limit_bytes)
-                .await
+            let response = if self.provider_info.model_catalog_url.is_some() {
+                client.list_models_raw(request_url, HeaderMap::new(), response_body_limit_bytes)
+                    .await
+            } else {
+                return client.list_models(request_url, HeaderMap::new(), response_body_limit_bytes)
+                    .await.map_err(map_api_error);
+            };
+            let (bytes, etag) = response
                 .map_err(|mut error| {
                     if self.provider_info.model_catalog_url.is_some()
                         && let codex_api::ApiError::Transport(TransportError::Http {
@@ -179,7 +186,8 @@ impl OpenAiModelsEndpoint {
                         *body = None;
                     }
                     map_api_error(error)
-                })
+                })?;
+            Ok((provider_catalog::parse(&bytes)?, etag))
         })
         .await
         .map_err(|_| CodexErr::RequestTimeout)??;
@@ -218,6 +226,7 @@ impl ModelsEndpointClient for OpenAiModelsEndpoint {
 
     fn has_provider_api_key(&self) -> bool {
         self.provider_info.env_key.is_some()
+            || self.provider_info.keyring_key.is_some()
             || self.provider_info.experimental_bearer_token.is_some()
     }
 
