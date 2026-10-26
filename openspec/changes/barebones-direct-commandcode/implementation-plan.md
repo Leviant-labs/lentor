@@ -1,5 +1,7 @@
 # Implementation Plan: Barebones Direct CommandCode Runtime
 
+**Status: Superseded on 2026-10-26.** The eleven-PR sequence below is retained as historical planning. Continue with [endpoint-api-key-runtime/tasks.md](../endpoint-api-key-runtime/tasks.md); do not start the remaining CommandCode-specific stages.
+
 ## 1. Execution Model
 
 The work is divided into small, reviewable Rust changes with explicit interface ownership. One orchestrator owns sequencing, OpenSpec task state, integration branches, and final verification. Subagents implement bounded slices in isolated worktrees or non-overlapping branches and return code plus evidence; they do not redefine the approved specs.

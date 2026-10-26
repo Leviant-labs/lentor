@@ -1,0 +1,3 @@
+schema: spec-driven
+created: 2026-10-26
+goal: Reuse configurable Responses API providers with an endpoint, API key, and explicit model ID.

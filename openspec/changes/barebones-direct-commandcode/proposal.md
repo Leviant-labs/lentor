@@ -1,3 +1,5 @@
+**Status: Superseded on 2026-10-26.** See [endpoint-api-key-runtime](../endpoint-api-key-runtime/proposal.md) for the active scope. The requirements below record the earlier CommandCode-specific design and are not the current implementation target.
+
 ## Why
 
 Codex currently treats OpenAI/ChatGPT services and identity as part of its default runtime, while the intended baseline is a provider-independent Rust agent that can use CommandCode directly. The project also needs a durable, reviewable specification and a clear boundary between the stable plugin package format, independent plugin marketplaces, ChatGPT Apps, and optional Codex account services.

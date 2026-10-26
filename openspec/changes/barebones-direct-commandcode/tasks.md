@@ -1,3 +1,5 @@
+**Status: Superseded on 2026-10-26.** These checkboxes describe the earlier branch's work, not the active backlog. See [endpoint-api-key-runtime/tasks.md](../endpoint-api-key-runtime/tasks.md). Existing implementation branches are retained; unchecked CommandCode-specific tasks are deferred.
+
 ## 1. Specification and Repository Gate
 
 - [x] 1.1 Confirm `git rev-parse --show-toplevel` resolves to `codex-upstream` and record a clean baseline status
@@ -7,33 +9,39 @@
 
 ## 2. Provider Contract Foundation
 
-- [ ] 2.1 [FND] Add explicit `ProviderKind`, `AccountServices`, and provider capability types in focused protocol/provider modules
-- [ ] 2.2 [FND] Add `CommandCodeAuthSource` and `CommandCodeRoute` enums without implementing network behavior
-- [ ] 2.3 [FND] Extend provider configuration parsing for direct CommandCode identity, base URL, auth source, and model routing
-- [ ] 2.4 [FND] Freeze public type signatures and publish an interface note consumed by AUTH, TRANSPORT, and ACCOUNT
-- [ ] 2.5 [FND] Add whole-object config/type round-trip tests and reserved-provider validation tests
+- [x] 2.1 [FND] Add explicit `ProviderKind`, `AccountServices`, and provider capability types in focused protocol/provider modules
+- [x] 2.2 [FND] Add `CommandCodeAuthSource` and `CommandCodeRoute` enums without implementing network behavior
+- [x] 2.3 [FND] Extend provider configuration parsing for direct CommandCode identity, base URL, auth source, and model routing
+- [x] 2.4 [FND] Freeze public type signatures and publish an interface note consumed by AUTH, TRANSPORT, and ACCOUNT
+- [x] 2.5 [FND] Add whole-object config/type round-trip tests and reserved-provider validation tests
 - [ ] 2.6 [FND] Run `just write-config-schema` and scoped provider/config tests; commit only foundation changes
+  - Partial: `codex-rs/core/config.schema.json` was updated by hand in `c0d4bfc`, but `just write-config-schema` and the scoped provider/config test run are not verified in this environment.
 
 ## 3. CommandCode Authentication
 
-- [ ] 3.1 [AUTH] Create a focused Rust auth crate with API-key, OAuth, and imported-CLI source types
-- [ ] 3.2 [AUTH] Implement keyring-backed provider credential storage and non-secret `CommandCodeIdentity` metadata
-- [ ] 3.3 [AUTH] Implement bounded `GET https://api.commandcode.ai/alpha/whoami` validation and error redaction
-- [ ] 3.4 [AUTH] Implement random state generation and state-checked CommandCode callback payload parsing
-- [ ] 3.5 [AUTH] Implement IPv4/IPv6 loopback callback binding, ephemeral-port fallback, timeout, and abort handling
-- [ ] 3.6 [AUTH] Implement browser authorization URL construction and manual callback/URL/key paste fallback
+- [x] 3.1 [AUTH] Create a focused Rust auth crate with API-key, OAuth, and imported-CLI source types
+- [x] 3.2 [AUTH] Implement keyring-backed provider credential storage and non-secret `CommandCodeIdentity` metadata
+- [x] 3.3 [AUTH] Implement bounded `GET https://api.commandcode.ai/alpha/whoami` validation and error redaction
+- [x] 3.4 [AUTH] Implement random state generation and state-checked CommandCode callback payload parsing
+- [x] 3.5 [AUTH] Implement IPv4/IPv6 loopback callback binding, ephemeral-port fallback, timeout, and abort handling
+- [x] 3.6 [AUTH] Implement browser authorization URL construction and manual callback/URL/key paste fallback
 - [ ] 3.7 [AUTH] Implement optional local CommandCode CLI credential import without retaining the source file
-- [ ] 3.8 [AUTH] Add mock-server tests for success, invalid key, state mismatch, timeout, cancellation, and provider isolation
+  - Blocked on wording: the implementation follows the spec scenario (key is validated and stored, and no copy of the source auth file is persisted), but it deliberately leaves the user's CLI source file in place. The task text says "without retaining the source file".
+- [x] 3.8 [AUTH] Add mock-server tests for success, invalid key, state mismatch, timeout, cancellation, and provider isolation
 - [ ] 3.9 [AUTH] Add secret-redaction tests across errors, logs, config output, and serialized diagnostic records
+  - Partial: error text/`Debug`, `ApiKey` formatting, and serialized identity metadata are covered. Config output, logs, rollouts, and app-server diagnostic records are not yet tested.
+- [ ] 3.10 [AUTH] Treat an environment-variable key reference as its own credential source with distinct identity provenance, and test a populated variable through `whoami` validation and storage
 
 ## 4. CommandCode Discovery and Routing
 
-- [ ] 4.1 [TRANSPORT] Register the direct `commandcode` provider with base URL `https://api.commandcode.ai/provider/v1`
-- [ ] 4.2 [TRANSPORT] Implement bounded `/provider/v1/models` retrieval with response-size and model-count caps
-- [ ] 4.3 [TRANSPORT] Parse sparse model metadata and normalize `supported_endpoints` into `CommandCodeRoute`
-- [ ] 4.4 [TRANSPORT] Reject unknown, empty, or mutually unsupported route sets before request construction
-- [ ] 4.5 [TRANSPORT] Add discovery fixtures for complete, sparse, oversized, malformed, and unavailable responses
-- [ ] 4.6 [TRANSPORT] Expose selected provider, model, route, and catalog state through the existing model-provider boundary
+- [x] 4.1 [TRANSPORT] Register the direct `commandcode` provider with base URL `https://api.commandcode.ai/provider/v1`
+- [x] 4.2 [TRANSPORT] Implement bounded `/provider/v1/models` retrieval with response-size and model-count caps
+- [x] 4.3 [TRANSPORT] Parse sparse model metadata and normalize `supported_endpoints` into `CommandCodeRoute`
+- [x] 4.4 [TRANSPORT] Reject unknown, empty, or mutually unsupported route sets before request construction
+- [x] 4.5 [TRANSPORT] Add discovery fixtures for complete, sparse, oversized, malformed, and unavailable responses
+- [x] 4.6 [TRANSPORT] Expose selected provider, model, route, and catalog state through the existing model-provider boundary
+- [ ] 4.7 [TRANSPORT] Select `commandcode` when no `model_provider` is configured, keep an explicit provider authoritative without contacting CommandCode, and test both precedence paths
+  - Partial: `select_provider` implements and tests both precedence paths, and discovery only runs through the explicit CommandCode boundary. The effective default provider is still `openai` until task 10.3 wires the config default.
 
 ## 5. CommandCode Wire Adapters
 
@@ -48,6 +56,7 @@
 - [ ] 5.9 [TRANSPORT] Map 401, 403, 422, 429, and retryable 5xx responses into bounded provider errors
 - [ ] 5.10 [TRANSPORT] Add captured request/stream fixtures for every route and terminal failure class
 - [ ] 5.11 [TRANSPORT] Add direct-network integration tests proving no proxy or OpenAI fallback route is used
+- [ ] 5.12 [TRANSPORT] Preserve the final provider status and request ID on terminal failures, and map zero-retention rejections to a distinct redacted error
 
 ## 6. Plugin Preservation and ChatGPT App Boundary
 
@@ -58,6 +67,7 @@
 - [ ] 6.5 [PLUGINS] Make `paths.apps` parse and serialize while remaining inert at runtime
 - [ ] 6.6 [PLUGINS] Produce capability metadata separating available plugin support from disabled ChatGPT Apps
 - [ ] 6.7 [PLUGINS] Add regressions proving an app-declaring plugin still loads all non-app resources
+- [ ] 6.8 [PLUGINS] Test marketplace add, list, install, update, and remove operations without ChatGPT App service traffic
 
 ## 7. Optional Account Services
 
@@ -66,7 +76,7 @@
 - [ ] 7.3 [ACCOUNT] Preserve account status, usage, limits, and credits only in enabled mode
 - [ ] 7.4 [ACCOUNT] Keep CommandCode auth and transport independent of account capability state
 - [ ] 7.5 [ACCOUNT] Keep ChatGPT Apps disabled even when account services are enabled
-- [ ] 7.6 [ACCOUNT] Add no-network tests for disabled mode and full account reporting tests for enabled mode
+- [ ] 7.6 [ACCOUNT] Add no-network tests for disabled mode, full account reporting tests for enabled mode, and a key-only CommandCode session that discovers models and answers a turn with no Codex or ChatGPT login
 - [ ] 7.7 [ACCOUNT] Add account-outage isolation tests with CommandCode inference active
 
 ## 8. CLI and TUI Integration
