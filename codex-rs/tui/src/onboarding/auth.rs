@@ -224,6 +224,10 @@ impl KeyboardHandler for AuthModeWidget {
             self.select_option_by_index(/*index*/ 3);
             return;
         }
+        if keys::SELECT_FIFTH.is_pressed(key_event) {
+            self.select_option_by_index(/*index*/ 4);
+            return;
+        }
         if keys::CONFIRM.is_pressed(key_event) {
             let sign_in_state = { (*self.sign_in_state.read().unwrap()).clone() };
             match sign_in_state {
@@ -1373,6 +1377,19 @@ mod tests {
 > second:Model");
         assert!(matches!(&*widget.sign_in_state.read().unwrap(),
             SignInState::CustomProviderModels { selected: 1, .. }));
+    }
+
+    #[tokio::test]
+    async fn fifth_option_selects_bedrock_and_five_is_accepted_in_api_key_entry() {
+        let (mut widget, _tmp) = widget_forced_chatgpt().await;
+        widget.auth_config.forced_login_method = None;
+        widget.bedrock_setup_enabled = true;
+        widget.handle_key_event(KeyEvent::new(KeyCode::Char('5'), KeyModifiers::NONE));
+        assert!(matches!(&*widget.sign_in_state.read().unwrap(), SignInState::Bedrock(_)));
+
+        *widget.sign_in_state.write().unwrap() = SignInState::ApiKeyEntry(ApiKeyInputState::default());
+        widget.handle_key_event(KeyEvent::new(KeyCode::Char('5'), KeyModifiers::NONE));
+        assert!(matches!(&*widget.sign_in_state.read().unwrap(), SignInState::ApiKeyEntry(state) if state.value == "5"));
     }
 
     #[tokio::test]

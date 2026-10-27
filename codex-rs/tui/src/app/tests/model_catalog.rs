@@ -35,7 +35,6 @@ async fn incomplete_provider_transition_rejects_catalog_replies_without_changing
     app.provider_transition_blocked = true;
     app.chat_widget.block_provider_transition();
     let request_id = uuid::Uuid::new_v4();
-    app.chat_widget.model_popup_request_id = Some(request_id);
 
     for result in [Err("discovery failed".to_string()), Ok(Vec::new()), Ok(all_model_presets())] {
         Box::pin(app.handle_event(

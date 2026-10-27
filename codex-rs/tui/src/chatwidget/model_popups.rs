@@ -153,6 +153,10 @@ impl ChatWidget {
                             .supported_reasoning_efforts
                             .iter()
                             .any(|option| Self::is_advanced_reasoning_effort(&option.effort));
+                let effort = (!requires_advanced_selection).then(|| {
+                    self.advertised_effort_for_model(&preset)
+                        .unwrap_or_else(|| preset.default_reasoning_effort.clone())
+                });
                 let actions: Vec<SelectionAction> = if requires_advanced_selection {
                     let preset_for_action = preset.clone();
                     vec![Box::new(move |tx| {
@@ -161,14 +165,11 @@ impl ChatWidget {
                         });
                     })]
                 } else {
-                    let effort = self
-                        .advertised_effort_for_model(&preset)
-                        .unwrap_or_else(|| preset.default_reasoning_effort.clone());
                     let should_prompt_plan_mode_scope = self
-                        .should_prompt_plan_mode_reasoning_scope(model.as_str(), Some(effort.clone()));
+                        .should_prompt_plan_mode_reasoning_scope(model.as_str(), effort.clone());
                     self.model_selection_actions(
                         model.clone(),
-                        Some(effort),
+                        effort.clone(),
                         should_prompt_plan_mode_scope,
                     )
                 };
@@ -176,13 +177,9 @@ impl ChatWidget {
                     name: preset.display_name.clone(),
                     description,
                     is_current: model.as_str() == current_model,
-                    secondary_action: if requires_advanced_selection {
-                        None
-                    } else {
-                        self.advertised_effort_for_model(&preset)
-                            .or_else(|| Some(preset.default_reasoning_effort.clone()))
-                            .and_then(|effort| self.session_model_selection_action(model.clone(), Some(effort)))
-                    },
+                    secondary_action: effort.and_then(|effort| {
+                        self.session_model_selection_action(model.clone(), Some(effort))
+                    }),
                     actions,
                     dismiss_on_select: !requires_advanced_selection,
                     dismiss_parent_on_child_accept: requires_advanced_selection,
