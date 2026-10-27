@@ -10,8 +10,14 @@ impl AuthModeWidget {
             let mut state = self.sign_in_state.write().unwrap();
             if let SignInState::CustomProviderModels { models, selected } = &mut *state {
                 match key_event.code {
-                    KeyCode::Up => *selected = selected.saturating_sub(1),
-                    KeyCode::Down => *selected = (*selected + 1).min(models.len().saturating_sub(1)),
+                    KeyCode::Up => {
+                        *selected = selected.saturating_sub(1);
+                        None
+                    }
+                    KeyCode::Down => {
+                        *selected = (*selected + 1).min(models.len().saturating_sub(1));
+                        None
+                    }
                     KeyCode::Enter => {
                         let model = models.get(*selected).cloned();
                         if model.is_some() {

@@ -473,7 +473,7 @@ pub fn process_responses_event(
                     }
                     Err(err) => {
                         let error = format!("failed to parse ResponseCompleted: {err}");
-                        debug!("{error}");
+                        debug!("failed to parse ResponseCompleted");
                         return Err(ResponsesEventError::Api(ApiError::Stream(error)));
                     }
                 }
@@ -505,16 +505,13 @@ pub fn process_responses_event(
         | "response.output_text.done"
         | "response.reasoning_summary_part.done"
         | "responsesapi.websocket_timing" => {
-            trace!("unhandled responses event: {}", event.kind);
+            trace!("unhandled responses event");
         }
         kind if kind.ends_with(".delta") => {
-            trace!("unhandled responses event: {kind}");
+            trace!("unhandled responses delta event");
         }
         _ => {
-            debug!(
-                "unhandled responses event: {:?}",
-                event.kind.chars().take(128).collect::<String>()
-            );
+            debug!("unhandled responses event");
         }
     }
 
@@ -562,7 +559,9 @@ async fn process_sse_with_treatment(
         let sse = match response {
             Ok(Some(Ok(sse))) => sse,
             Ok(Some(Err(e))) => {
-                debug!("SSE Error: {e:#}");
+                if telemetry.as_ref().is_none_or(|t| t.include_response_debug()) {
+                    debug!("SSE Error: {e:#}");
+                }
                 let error = match e {
                     eventsource_stream::EventStreamError::Transport(
                         error @ codex_client::TransportError::Policy(_),
@@ -587,7 +586,9 @@ async fn process_sse_with_treatment(
             }
         };
 
-        trace!("SSE event: {}", &sse.data);
+        if telemetry.as_ref().is_none_or(|t| t.include_response_debug()) {
+            trace!("SSE event: {}", &sse.data);
+        }
 
         let event: ResponsesStreamEvent = match serde_json::from_str(&sse.data) {
             Ok(event) => event,

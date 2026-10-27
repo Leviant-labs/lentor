@@ -48,21 +48,31 @@ impl ConfigRequestProcessor {
         self.load_latest_config(/*fallback_cwd*/ None).await?;
         let reference = store_provider_api_key(&provider_id, &base_url, &api_key)
             .map_err(|error| invalid_request(error.to_string()))?;
-        let edits = vec![
-            ConfigEdit {
-                key_path: format!("model_providers.{provider_id}"),
-                value: json!({
-                    "name": name,
-                    "base_url": base_url,
-                    "keyring_key": reference,
-                    "model_catalog_url": format!("{base_url}/models"),
-                    "model_catalog_format": "openai",
-                    "wire_api": "responses",
-                    "requires_openai_auth": false,
-                    "supports_websockets": false,
-                }),
-                merge_strategy: MergeStrategy::Replace,
-            },
+        // Edit only setup-owned fields in the user layer. Replacing the provider
+        // table discards custom settings; copying effective config could persist
+        // managed secrets into the user file.
+        let mut edits: Vec<ConfigEdit> = [
+            ("name", json!(name)),
+            ("base_url", json!(base_url)),
+            ("keyring_key", json!(reference)),
+            ("model_catalog_url", json!(format!("{base_url}/models"))),
+            ("model_catalog_format", json!("openai")),
+            ("wire_api", json!("responses")),
+            ("requires_openai_auth", json!(false)),
+            ("env_key", serde_json::Value::Null),
+            ("env_key_instructions", serde_json::Value::Null),
+            ("experimental_bearer_token", serde_json::Value::Null),
+            ("auth", serde_json::Value::Null),
+            ("aws", serde_json::Value::Null),
+        ]
+        .into_iter()
+        .map(|(field, value)| ConfigEdit {
+            key_path: format!("model_providers.{provider_id}.{field}"),
+            value,
+            merge_strategy: MergeStrategy::Replace,
+        })
+        .collect();
+        edits.extend([
             ConfigEdit {
                 key_path: "model_provider".to_string(),
                 value: json!(provider_id),
@@ -79,11 +89,16 @@ impl ConfigRequestProcessor {
                 merge_strategy: MergeStrategy::Replace,
             },
             ConfigEdit {
+                key_path: "plan_mode_reasoning_effort".to_string(),
+                value: serde_json::Value::Null,
+                merge_strategy: MergeStrategy::Replace,
+            },
+            ConfigEdit {
                 key_path: "features.api_key_model_discovery".to_string(),
                 value: json!(true),
                 merge_strategy: MergeStrategy::Replace,
             },
-        ];
+        ]);
         let write = self
             .batch_write_inner(ConfigBatchWriteParams {
                 edits,

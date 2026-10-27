@@ -146,24 +146,54 @@ async fn configure_keyring_lifecycle() -> Result<()> {
         .mount(&endpoint).await;
     let base = format!("{}/v1", endpoint.uri());
     let home = TempDir::new()?;
-    let client = start(&home, "").await?;
-    let response = request(&client, 1, "modelProvider/configure", params(&base)).await?.expect("configure succeeds");
+    std::fs::write(home.path().join("config.toml"), r#"
+model_reasoning_effort = "high"
+plan_mode_reasoning_effort = "low"
+
+[model_providers.custom]
+name = "Previous"
+base_url = "https://previous.example/v1"
+env_key = "PREVIOUS_PROVIDER_KEY"
+env_key_instructions = "Previous instructions"
+experimental_bearer_token = "previous-synthetic-token"
+stream_idle_timeout_ms = 123456
+request_max_retries = 7
+[model_providers.custom.http_headers]
+X-Custom = "preserve-me"
+[model_providers.custom.capabilities]
+external_web_access = false
+remote_compaction = "unsupported"
+"#)?;
+    let client = start(&home, "[model_providers.custom.http_headers]\nX-Managed = 'managed-only-synthetic-secret'\n").await?;
+    let response = request(&client, /*id*/ 1, "modelProvider/configure", params(&base)).await?.expect("configure succeeds");
     assert_eq!(response, json!({"providerId":"custom", "baseUrl":base, "model":"vendor/exact"}));
     let saved = std::fs::read_to_string(home.path().join("config.toml"))?;
     assert!(!saved.contains("synthetic-provider-key"));
     let config: toml::Value = toml::from_str(&saved)?;
+    assert!(config.get("model_reasoning_effort").is_none());
+    assert!(config.get("plan_mode_reasoning_effort").is_none());
+    assert!(!saved.contains("previous-synthetic-token"));
+    assert!(!saved.contains("managed-only-synthetic-secret"));
+    for field in ["env_key", "env_key_instructions", "experimental_bearer_token", "auth", "aws"] {
+        assert!(config["model_providers"]["custom"].get(field).is_none(), "conflicting field {field} was retained");
+    }
     assert_eq!(config["model_providers"]["custom"]["model_catalog_format"].as_str(), Some("openai"));
     let reference = config["model_providers"]["custom"]["keyring_key"].as_str().unwrap();
     let stored = entries.lock().unwrap()[&(String::from("clodex-api-providers"), reference.into())].get_password()?;
     assert_eq!(serde_json::from_str::<Value>(&stored)?, json!({"endpoint": base, "api_key": "synthetic-provider-key"}));
-    let read = request(&client, 2, "config/read", json!({})).await?.expect("read succeeds");
+    let read = request(&client, /*id*/ 2, "config/read", json!({})).await?.expect("read succeeds");
     assert!(!read.to_string().contains("synthetic-provider-key"));
-    let models = request(&client, 3, "model/list", json!({})).await?.expect("list succeeds");
+    let models = request(&client, /*id*/ 3, "model/list", json!({})).await?.expect("list succeeds");
     assert_eq!(models["data"][0]["id"], "vendor/exact");
-    request(&client, 6, "modelProvider/configure", params(&base)).await?.expect("replacement succeeds");
+    request(&client, /*id*/ 6, "modelProvider/configure", params(&base)).await?.expect("replacement succeeds");
     let updated = std::fs::read_to_string(home.path().join("config.toml"))?;
     let updated: toml::Value = toml::from_str(&updated)?;
     let replacement = updated["model_providers"]["custom"]["keyring_key"].as_str().unwrap();
+    let provider = &updated["model_providers"]["custom"];
+    assert_eq!(provider["http_headers"], toml::Value::try_from(json!({"X-Custom": "preserve-me"}))?);
+    assert_eq!(provider["stream_idle_timeout_ms"].as_integer(), Some(123456));
+    assert_eq!(provider["request_max_retries"].as_integer(), Some(7));
+    assert_eq!(provider["capabilities"], toml::Value::try_from(json!({"external_web_access": false, "remote_compaction": "unsupported"}))?);
     assert_ne!(replacement, reference);
     assert!(entries.lock().unwrap()[&(String::from("clodex-api-providers"), reference.into())].get_password().is_ok());
     client.shutdown().await?;
@@ -173,7 +203,7 @@ async fn configure_keyring_lifecycle() -> Result<()> {
     std::fs::write(home.path().join("requirements.toml"), "model_provider = 'openai'\n")?;
     let client = start(&home, "").await?;
     let before = entries.lock().unwrap().keys().filter(|(service, _)| service == "clodex-api-providers").count();
-    let error = request(&client, 4, "modelProvider/configure", params(&base)).await?.expect_err("requirement rejects write");
+    let error = request(&client, /*id*/ 4, "modelProvider/configure", params(&base)).await?.expect_err("requirement rejects write");
     assert!(!error.message.contains("synthetic-provider-key"));
     assert_eq!(std::fs::read_to_string(home.path().join("config.toml"))?, "model = 'previous-model'\n");
     {
@@ -185,7 +215,7 @@ async fn configure_keyring_lifecycle() -> Result<()> {
 
     let home = TempDir::new()?;
     let client = start(&home, "model = 'managed-model'\n").await?;
-    let error = request(&client, 5, "modelProvider/configure", params(&base)).await?.expect_err("override is reported");
+    let error = request(&client, /*id*/ 5, "modelProvider/configure", params(&base)).await?.expect_err("override is reported");
     assert!(error.message.contains("saved but are not effective"));
     assert!(!error.message.contains("synthetic-provider-key"));
     let saved = std::fs::read_to_string(home.path().join("config.toml"))?;

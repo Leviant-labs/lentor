@@ -546,7 +546,7 @@ async fn connect_websocket(
             (stream, response)
         }
         Err(err) => {
-            error!("failed to connect to websocket: {err}, url: {url}");
+            error!("failed to connect to websocket");
             return Err(map_ws_error(err, &url));
         }
     };
@@ -793,8 +793,8 @@ async fn run_websocket_response_stream(
 
                 let event = match serde_json::from_str::<ResponsesStreamEvent>(&text) {
                     Ok(event) => event,
-                    Err(err) => {
-                        debug!("failed to parse websocket event: {err}, data: {text}");
+                    Err(_) => {
+                        debug!("failed to parse websocket event");
                         continue;
                     }
                 };
@@ -826,11 +826,13 @@ async fn run_websocket_response_stream(
                     }
                     continue;
                 }
-                emit_responses_websocket_timing_event(
-                    event.kind(),
-                    text.as_str(),
-                    timing_log_context,
-                );
+                if telemetry.as_ref().is_none_or(|t| t.include_response_debug()) {
+                    emit_responses_websocket_timing_event(
+                        event.kind(),
+                        text.as_str(),
+                        timing_log_context,
+                    );
+                }
                 if event.kind() == "codex.response.metadata"
                     && let Some(etag) =
                         event

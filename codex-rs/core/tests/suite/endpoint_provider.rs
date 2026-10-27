@@ -14,6 +14,7 @@ use wiremock::Mock;
 use wiremock::ResponseTemplate;
 use wiremock::matchers::method;
 use wiremock::matchers::path;
+use tracing_test::traced_test;
 
 const MODEL: &str = "vendor/model-exact-v1";
 const TOKEN: &str = "fixture-endpoint-secret";
@@ -193,5 +194,104 @@ async fn rejected_provider_key_is_redacted() -> Result<()> {
     assert_eq!(requests.len(), 1);
     assert_eq!(requests[0].url.path(), "/v1/responses");
     assert_eq!(requests[0].headers["authorization"], format!("Bearer {TOKEN}"));
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[traced_test]
+async fn provider_bad_request_does_not_expose_echoed_key() -> Result<()> {
+    core_test_support::skip_if_no_network!(Ok(()));
+    tracing::info!("provider-http-redaction-test-sentinel");
+    let server = responses::start_mock_server().await;
+    let base_url = format!("{}/v1", server.uri());
+    Mock::given(method("POST"))
+        .and(path("/v1/responses"))
+        .respond_with(ResponseTemplate::new(400).insert_header("x-request-id", TOKEN).insert_header("x-openai-authorization-error", TOKEN).set_body_string(format!(
+            r#"{{"error":{{"code":"invalid_prompt","message":"Bearer {TOKEN}"}}}}"#
+        )))
+        .mount(&server)
+        .await;
+    let test = test_codex()
+        .with_model(MODEL)
+        .with_config(move |config| {
+            config.model_provider_id = "custom-endpoint".to_owned();
+            config.model_provider.base_url = Some(base_url);
+            config.model_provider.requires_openai_auth = false;
+            config.model_provider.experimental_bearer_token = Some(TOKEN.into());
+            config.model_provider.request_max_retries = Some(0);
+            config.model_provider.stream_max_retries = Some(0);
+        })
+        .build_with_auto_env(&server)
+        .await?;
+    test.codex.start_or_steer_turn(TurnInputRequest::user_input(vec![UserInput::Text {
+        text: "hello".into(),
+        text_elements: Vec::new(),
+    }])).await?;
+    let mut errors = Vec::new();
+    wait_for_event(&test.codex, |event| {
+        if let EventMsg::Error(error) = event {
+            errors.push(error.clone());
+        }
+        matches!(event, EventMsg::TurnComplete(_))
+    }).await;
+    assert!(!errors.is_empty());
+    assert!(errors.iter().all(|error| !error.message.contains(TOKEN)), "provider error exposed the key");
+    assert!(errors.iter().any(|error| matches!(&error.codex_error_info, Some(codex_protocol::protocol::CodexErrorInfo::InvalidPrompt))), "expected an invalid prompt error");
+    let requests = server.received_requests().await.unwrap();
+    assert!(!requests.is_empty());
+    assert_eq!(requests[0].headers["authorization"], format!("Bearer {TOKEN}"));
+    assert!(logs_contain("provider-http-redaction-test-sentinel"));
+    assert!(!logs_contain(TOKEN), "logs exposed the key");
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[traced_test]
+async fn provider_stream_error_and_headers_do_not_expose_key() -> Result<()> {
+    core_test_support::skip_if_no_network!(Ok(()));
+    tracing::info!("provider-stream-redaction-test-sentinel");
+    let server = responses::start_mock_server().await;
+    let base_url = format!("{}/v1", server.uri());
+    let body = responses::sse(vec![
+        responses::ev_response_created("resp-1"),
+        json!({"type": "response.failed", "response": {"error": {
+            "code": "invalid_prompt", "message": format!("Bearer {TOKEN}")
+        }}}),
+    ]);
+    Mock::given(method("POST"))
+        .and(path("/v1/responses"))
+        .respond_with(ResponseTemplate::new(200)
+            .insert_header("x-request-id", TOKEN)
+            .insert_header("x-openai-authorization-error", TOKEN)
+            .set_body_raw(body, "text/event-stream"))
+        .mount(&server)
+        .await;
+    let test = test_codex()
+        .with_model(MODEL)
+        .with_config(move |config| {
+            config.model_provider_id = "custom-endpoint".to_owned();
+            config.model_provider.base_url = Some(base_url);
+            config.model_provider.requires_openai_auth = false;
+            config.model_provider.experimental_bearer_token = Some(TOKEN.into());
+            config.model_provider.request_max_retries = Some(0);
+            config.model_provider.stream_max_retries = Some(0);
+        })
+        .build_with_auto_env(&server)
+        .await?;
+    test.codex.start_or_steer_turn(TurnInputRequest::user_input(vec![UserInput::Text {
+        text: "hello".into(),
+        text_elements: Vec::new(),
+    }])).await?;
+    let mut errors = Vec::new();
+    wait_for_event(&test.codex, |event| {
+        if let EventMsg::Error(error) = event {
+            errors.push(error.message.clone());
+        }
+        matches!(event, EventMsg::TurnComplete(_))
+    }).await;
+    assert!(!errors.is_empty());
+    assert!(errors.iter().all(|error| !error.contains(TOKEN)));
+    assert!(logs_contain("provider-stream-redaction-test-sentinel"));
+    assert!(!logs_contain(TOKEN), "logs exposed the key");
     Ok(())
 }

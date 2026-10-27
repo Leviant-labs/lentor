@@ -8,6 +8,10 @@ use codex_utils_path_uri::PathConvention;
 use codex_utils_path_uri::PathUri;
 use futures::StreamExt;
 
+#[path = "model_list_cursor.rs"]
+mod model_list_cursor;
+use model_list_cursor::ModelListCursor;
+
 #[derive(Clone)]
 pub(crate) struct CatalogRequestProcessor {
     pub(super) outgoing: Arc<OutgoingMessageSender>,
@@ -182,7 +186,11 @@ impl CatalogRequestProcessor {
             .model_catalog
             .current()
             .await
-            .map_err(|err| config_load_error(&err))?;
+            .map_err(|err| if params.cursor.is_some() {
+                model_list_cursor::invalidated()
+            } else {
+                config_load_error(&err)
+            })?;
         // Gate the same provider used by the catalog, including when its model cache is warm.
         // Resolving credentials may refresh them, but explicit host policy prevents browser login.
         if let Some(gateway) = codex_model_provider::create_model_provider(
@@ -288,22 +296,38 @@ impl CatalogRequestProcessor {
         config: Arc<Config>,
         models_manager: codex_models_manager::manager::SharedModelsManager,
     ) -> Result<ModelListResponse, JSONRPCErrorError> {
-        let ModelListParams {
-            limit,
-            cursor,
-            include_hidden,
-        } = params;
+        let cursor = params.cursor.as_deref().map(ModelListCursor::parse).transpose()?;
         let presets = self
             .model_catalog
             .list_models_from_snapshot(
-                config,
-                models_manager,
-                codex_models_manager::manager::RefreshStrategy::OnlineIfUncached,
+                Arc::clone(&config),
+                Arc::clone(&models_manager),
+                // The cursor is an offset into the cached catalog from page one.
+                // Refreshing here can duplicate or skip models if upstream changes.
+                if cursor.is_some() {
+                    codex_models_manager::manager::RefreshStrategy::Offline
+                } else {
+                    codex_models_manager::manager::RefreshStrategy::OnlineIfUncached
+                },
             )
             .await
-            .map_err(|err| config_load_error(&err))?;
-        let models = supported_models(presets, include_hidden.unwrap_or(false));
+            .map_err(|err| if cursor.is_some() {
+                model_list_cursor::invalidated()
+            } else {
+                config_load_error(&err)
+            })?;
+        let models = supported_models(presets, params.include_hidden.unwrap_or(false));
+        let version = ModelListCursor::version(&config, &models_manager, &models, &params)?;
+        let start = match cursor {
+            Some(cursor) if cursor.version == version => cursor.offset,
+            Some(_) => return Err(model_list_cursor::invalidated()),
+            None => 0,
+        };
         let total = models.len();
+
+        if start > total {
+            return Err(model_list_cursor::invalidated());
+        }
 
         if total == 0 {
             return Ok(ModelListResponse {
@@ -312,25 +336,13 @@ impl CatalogRequestProcessor {
             });
         }
 
-        let effective_limit = limit.unwrap_or(total as u32).max(1) as usize;
+        let effective_limit = params.limit.unwrap_or(total as u32).max(1) as usize;
         let effective_limit = effective_limit.min(total);
-        let start = match cursor {
-            Some(cursor) => cursor
-                .parse::<usize>()
-                .map_err(|_| invalid_request(format!("invalid cursor: {cursor}")))?,
-            None => 0,
-        };
-
-        if start > total {
-            return Err(invalid_request(format!(
-                "cursor {start} exceeds total models {total}"
-            )));
-        }
 
         let end = start.saturating_add(effective_limit).min(total);
         let items = models[start..end].to_vec();
         let next_cursor = if end < total {
-            Some(end.to_string())
+            Some(format!("v1:{version}:{end}"))
         } else {
             None
         };

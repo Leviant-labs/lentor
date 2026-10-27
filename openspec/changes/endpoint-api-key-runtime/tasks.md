@@ -2,7 +2,8 @@
 
 - [x] 1.1 Record the user's endpoint/API-key direction and Responses-first selection; supersede the earlier CommandCode-specific plan without deleting its commits.
 - [x] 1.2 Inspect existing base URL, environment-key, login-gating, and manually configured model support.
-- [ ] 1.3 Select a coherent integration baseline and identify which plugin changes to retain; keep unused CommandCode-specific auth/discovery out of the required runtime.
+- [x] 1.3 Select a coherent integration baseline and identify which plugin changes to retain; keep unused CommandCode-specific auth/discovery out of the required runtime.
+  - Evidence: `endpoint-key/runtime` starts from plugin-isolation baseline `229a983`; the CommandCode foundation/auth/discovery branches remain separate. Implementation checkpoints are not release verification.
 - [x] 1.4 Validate the new OpenSpec artifacts and record the current branch's integration limits.
   - Evidence: `openspec validate --all --strict` passes both changes. The current PR4 branch contains foundation/auth/discovery work; plugin changes remain on the separate PR2 branch. No combined release or real endpoint smoke test is verified.
 
@@ -15,6 +16,7 @@
 - [ ] 2.4 Verify a local tool call, tool-result submission, and a continued/resumed turn against the same provider.
 - [ ] 2.5 Cover missing key, rejected key, rate-limit, and transport errors with credential-redaction and no-provider-fallback assertions.
 - [ ] 2.6 Run a real Responses-compatible endpoint smoke test when its base URL, model ID, and API key are available; record exact evidence or the external blocker.
+  - Partial: direct authenticated Vercel `/responses` returned HTTP 200 and the expected `OK` with `xiaomi/mimo-v2.6-flash` (16 total tokens). Authenticated `/models` returned 482 models including that exact ID. The complete Clodex setup/tool/continuation smoke remains pending.
 - [ ] 2.7 Verify that the selected reasoning effort reaches inference, persists when valid, and is revalidated when provider/model changes.
 
 ## 3. In-app setup, discovery, and model controls
@@ -37,6 +39,7 @@
 
 - [ ] 5.1 Reconcile retained configuration/session compatibility and regenerate schemas/Bazel locks when the final production diff requires them.
 - [ ] 5.2 Run scoped project tests, required format/lint checks, and strict OpenSpec validation; request approval before the complete test suite.
+  - Partial: strict OpenSpec validation passes both changes. Provider crates compile. The initial sandboxed provider run passed 127 of 148 tests; local-network/credential-file restrictions and a catalog assertion require fixes and an unrestricted scoped rerun. No complete-suite, final format/lint, TUI, or app-server pass is claimed.
 - [ ] 5.3 Publish focused reviewable PRs with appropriate CI and fork-specific setup instructions; record the supported endpoint/protocol and real smoke-test evidence.
 
 Deferred: CommandCode OAuth/import/whoami, provider-specific route selection, multi-gateway composition, and handwritten multi-format adapters. If another inference protocol is needed later, evaluate one embedded implementation independently. Generic `/models` discovery and model/reasoning controls are required now.

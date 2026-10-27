@@ -117,6 +117,11 @@ pub trait ModelProvider: fmt::Debug + Send + Sync {
     /// Returns the configured provider metadata.
     fn info(&self) -> &ModelProviderInfo;
 
+    /// Whether provider response diagnostics may be recorded verbatim.
+    fn include_response_debug(&self) -> bool {
+        true
+    }
+
     /// Returns whether the resolved Responses provider may receive internal tool metadata.
     fn include_internal_metadata(&self, provider: &Provider) -> bool {
         self.info().include_internal_metadata
@@ -429,6 +434,23 @@ impl ConfiguredModelProvider {
 }
 
 impl ModelProvider for ConfiguredModelProvider {
+    fn include_response_debug(&self) -> bool {
+        self.info.keyring_key.is_none()
+            && match self.info.model_catalog_format {
+                Some(codex_model_provider_info::ModelCatalogFormat::Codex) => true,
+                Some(codex_model_provider_info::ModelCatalogFormat::OpenAi) => false,
+                None => self.info.requires_openai_auth,
+            }
+    }
+
+    fn map_api_error(&self, error: ApiError) -> CodexErr {
+        if !self.include_response_debug() {
+            crate::provider_error::map_untrusted_error(error)
+        } else {
+            codex_api::map_api_error(error)
+        }
+    }
+
     fn info(&self) -> &ModelProviderInfo {
         &self.info
     }

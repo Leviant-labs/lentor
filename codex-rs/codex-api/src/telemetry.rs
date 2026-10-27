@@ -16,6 +16,9 @@ use tokio_tungstenite::tungstenite::Message;
 
 /// Generic telemetry.
 pub trait SseTelemetry: Send + Sync {
+    fn include_response_debug(&self) -> bool {
+        true
+    }
     fn on_sse_poll(
         &self,
         result: &Result<
@@ -33,6 +36,9 @@ pub trait SseTelemetry: Send + Sync {
 
 /// Telemetry for Responses WebSocket transport.
 pub trait WebsocketTelemetry: Send + Sync {
+    fn include_response_debug(&self) -> bool {
+        true
+    }
     fn on_ws_request(&self, duration: Duration, error: Option<&ApiError>, connection_reused: bool);
 
     fn on_ws_event(

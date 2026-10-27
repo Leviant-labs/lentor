@@ -7,6 +7,7 @@ mod models_endpoint;
 mod models_identity;
 mod provider;
 mod provider_credentials;
+mod provider_error;
 mod shared_state;
 pub mod test_support;
 mod workspace_routing;

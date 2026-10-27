@@ -148,6 +148,7 @@ fn generic_context_window_is_capped() {
 #[test]
 fn native_catalog_preserves_full_model_instructions() {
     let mut model = model_info_from_slug("native-model");
+    model.used_fallback_model_metadata = false;
     model
         .model_messages
         .get_or_insert_default()
