@@ -2836,6 +2836,26 @@ class ModelProviderCapabilitiesReadResponse(BaseModel):
     web_search: Annotated[bool, Field(alias="webSearch")]
 
 
+class ModelProviderConfigureParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    api_key: Annotated[str, Field(alias="apiKey")]
+    base_url: Annotated[str, Field(alias="baseUrl")]
+    model: str | None = None
+    name: str
+    provider_id: Annotated[str, Field(alias="providerId")]
+
+
+class ModelProviderConfigureResponse(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    base_url: Annotated[str, Field(alias="baseUrl")]
+    model: str | None = None
+    provider_id: Annotated[str, Field(alias="providerId")]
+
+
 class ModelRerouteReason(RootModel[Literal["highRiskCyberActivity"]]):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -7580,6 +7600,17 @@ class ModelListRequest(BaseModel):
     id: RequestId
     method: Annotated[Literal["model/list"], Field(title="Model/listRequestMethod")]
     params: ModelListParams
+
+
+class ModelProviderConfigureRequest(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    id: RequestId
+    method: Annotated[
+        Literal["modelProvider/configure"], Field(title="ModelProvider/configureRequestMethod")
+    ]
+    params: ModelProviderConfigureParams
 
 
 class AccountGatewayOAuthReadRequest(BaseModel):
@@ -12976,6 +13007,7 @@ class ClientRequest(
         | TurnInterruptRequest
         | ReviewStartRequest
         | ModelListRequest
+        | ModelProviderConfigureRequest
         | AccountGatewayOAuthReadRequest
         | AccountGatewayOAuthLoginRequest
         | AccountGatewayOAuthCancelRequest
@@ -13088,6 +13120,7 @@ class ClientRequest(
         | TurnInterruptRequest
         | ReviewStartRequest
         | ModelListRequest
+        | ModelProviderConfigureRequest
         | AccountGatewayOAuthReadRequest
         | AccountGatewayOAuthLoginRequest
         | AccountGatewayOAuthCancelRequest

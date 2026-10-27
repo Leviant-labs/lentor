@@ -24,6 +24,7 @@ use codex_login::collect_auth_env_telemetry;
 use codex_login::default_client::ClientRedirectPolicy;
 use codex_login::default_client::create_client_for_route_async;
 use codex_model_provider_info::CHATGPT_CODEX_BASE_URL;
+use codex_model_provider_info::ModelCatalogFormat;
 use codex_model_provider_info::ModelProviderInfo;
 use codex_models_manager::manager::ModelsEndpointClient;
 use codex_models_manager::manager::ModelsEndpointFuture;
@@ -63,11 +64,12 @@ impl OpenAiModelsEndpoint {
         auth_manager: Option<Arc<AuthManager>>,
         gateway_auth_manager: Option<Result<Arc<GatewayAuthManager>, String>>,
     ) -> Self {
-        let redirect_policy = if provider_info.model_catalog_url.is_some() {
-            ClientRedirectPolicy::Reject
-        } else {
-            ClientRedirectPolicy::Default
-        };
+        let redirect_policy =
+            if provider_info.model_catalog_url.is_some() || provider_info.keyring_key.is_some() {
+                ClientRedirectPolicy::Reject
+            } else {
+                ClientRedirectPolicy::Default
+            };
         Self {
             provider_info,
             auth_manager,
@@ -109,6 +111,15 @@ impl OpenAiModelsEndpoint {
             "codex.remote_models.fetch_update.duration_ms",
             &[("auth_mode", metric_auth_mode)],
         );
+        if self.provider_info.keyring_key.is_some()
+            && let Some(catalog_url) = self.provider_info.model_catalog_url.as_deref()
+        {
+            let base_url = self.provider_info.base_url.as_deref().ok_or_else(|| {
+                CodexErr::InvalidRequest("keyring provider requires an API base URL".to_string())
+            })?;
+            crate::provider_credentials::validate_catalog_destination(base_url, catalog_url)
+                .map_err(|error| CodexErr::InvalidRequest(error.to_string()))?;
+        }
         let identity = crate::models_identity::identity(&self.provider_info, auth.as_ref())?;
         let auth_mode = auth.as_ref().map(CodexAuth::auth_mode);
         let mut api_provider = self.provider_info.to_api_provider(auth_mode)?;
@@ -164,30 +175,36 @@ impl OpenAiModelsEndpoint {
                 .as_ref()
                 .map(|_| MAX_MODEL_CATALOG_BYTES);
             let response = if self.provider_info.model_catalog_url.is_some() {
-                client.list_models_raw(request_url, HeaderMap::new(), response_body_limit_bytes)
+                client
+                    .list_models_raw(request_url, HeaderMap::new(), response_body_limit_bytes)
                     .await
             } else {
-                return client.list_models(request_url, HeaderMap::new(), response_body_limit_bytes)
-                    .await.map_err(map_api_error);
+                return client
+                    .list_models(request_url, HeaderMap::new(), response_body_limit_bytes)
+                    .await
+                    .map_err(map_api_error);
             };
-            let (bytes, etag) = response
-                .map_err(|mut error| {
-                    if self.provider_info.model_catalog_url.is_some()
-                        && let codex_api::ApiError::Transport(TransportError::Http {
-                            url,
-                            headers,
-                            body,
-                            ..
-                        }) = &mut error
-                    {
-                        // Provider diagnostics may echo URL credentials or other secrets.
-                        *url = None;
-                        *headers = None;
-                        *body = None;
-                    }
-                    map_api_error(error)
-                })?;
-            Ok((provider_catalog::parse(&bytes)?, etag))
+            let (bytes, etag) = response.map_err(|mut error| {
+                if self.provider_info.model_catalog_url.is_some()
+                    && let codex_api::ApiError::Transport(TransportError::Http {
+                        url,
+                        headers,
+                        body,
+                        ..
+                    }) = &mut error
+                {
+                    // Provider diagnostics may echo URL credentials or other secrets.
+                    *url = None;
+                    *headers = None;
+                    *body = None;
+                }
+                map_api_error(error)
+            })?;
+            let models = match self.provider_info.model_catalog_format {
+                Some(ModelCatalogFormat::OpenAi) => provider_catalog::parse(&bytes)?,
+                None | Some(ModelCatalogFormat::Codex) => provider_catalog::parse_codex(&bytes)?,
+            };
+            Ok((models, etag))
         })
         .await
         .map_err(|_| CodexErr::RequestTimeout)??;
@@ -404,6 +421,10 @@ impl RequestTelemetry for ModelsRequestTelemetry {
 #[cfg(test)]
 #[path = "models_endpoint_timeout_tests.rs"]
 mod timeout_tests;
+
+#[cfg(test)]
+#[path = "models_endpoint_destination_tests.rs"]
+mod destination_tests;
 
 #[cfg(test)]
 mod tests {

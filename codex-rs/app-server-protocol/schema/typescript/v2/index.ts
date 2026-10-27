@@ -326,6 +326,8 @@ export type { ModelListParams } from "./ModelListParams";
 export type { ModelListResponse } from "./ModelListResponse";
 export type { ModelProviderCapabilitiesReadParams } from "./ModelProviderCapabilitiesReadParams";
 export type { ModelProviderCapabilitiesReadResponse } from "./ModelProviderCapabilitiesReadResponse";
+export type { ModelProviderConfigureParams } from "./ModelProviderConfigureParams";
+export type { ModelProviderConfigureResponse } from "./ModelProviderConfigureResponse";
 export type { ModelRerouteReason } from "./ModelRerouteReason";
 export type { ModelReroutedNotification } from "./ModelReroutedNotification";
 export type { ModelSafetyBufferingUpdatedNotification } from "./ModelSafetyBufferingUpdatedNotification";

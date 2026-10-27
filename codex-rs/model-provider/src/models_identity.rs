@@ -31,6 +31,11 @@ pub(crate) fn identity(
         field(b"model_catalog_url");
         field(catalog_url.as_bytes());
     }
+    if let Some(codex_model_provider_info::ModelCatalogFormat::OpenAi) =
+        provider_info.model_catalog_format
+    {
+        field(b"model_catalog_format=openai");
+    }
     let mut query: Vec<_> = api_provider.query_params.iter().flatten().collect();
     query.sort();
     field(&(query.len() as u64).to_le_bytes());

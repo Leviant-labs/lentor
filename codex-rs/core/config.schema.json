@@ -2790,6 +2790,25 @@
       },
       "type": "object"
     },
+    "ModelCatalogFormat": {
+      "description": "The schema and trust contract used to decode an explicit model catalog.",
+      "oneOf": [
+        {
+          "description": "A trusted Codex-native catalog with complete model metadata.",
+          "enum": [
+            "codex"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "An OpenAI-compatible catalog with bounded, untrusted metadata.",
+          "enum": [
+            "openai"
+          ],
+          "type": "string"
+        }
+      ]
+    },
     "ModelProviderAuthInfo": {
       "additionalProperties": false,
       "description": "Configuration for obtaining a provider bearer token from a command.",
@@ -2949,6 +2968,18 @@
           },
           "description": "Additional HTTP headers to include in requests to this provider where the (key, value) pairs are the header name and value.",
           "type": "object"
+        },
+        "keyring_key": {
+          "description": "Reference to a provider credential stored in the operating-system keyring.",
+          "type": "string"
+        },
+        "model_catalog_format": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/ModelCatalogFormat"
+            }
+          ],
+          "description": "Catalog format; omitted preserves the trusted Codex-native contract."
         },
         "model_catalog_url": {
           "description": "Optional full URL for a Codex-native model catalog. When unset, OpenAI discovery uses the Codex backend unless `base_url` overrides the inference endpoint.",

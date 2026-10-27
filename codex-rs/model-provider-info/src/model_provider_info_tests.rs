@@ -79,6 +79,7 @@ base_url = "http://localhost:11434/v1"
         name: "Ollama".into(),
         base_url: Some("http://localhost:11434/v1".into()),
         model_catalog_url: None,
+        model_catalog_format: None,
         env_key: None,
         keyring_key: None,
         env_key_instructions: None,
@@ -117,6 +118,7 @@ query_params = { api-version = "2025-04-01-preview" }
         name: "Azure".into(),
         base_url: Some("https://xxxxx.openai.azure.com/openai".into()),
         model_catalog_url: None,
+        model_catalog_format: None,
         env_key: Some("AZURE_OPENAI_API_KEY".into()),
         keyring_key: None,
         env_key_instructions: None,
@@ -159,6 +161,7 @@ supports_standalone_web_search = true
         name: "Example".into(),
         base_url: Some("https://example.com".into()),
         model_catalog_url: None,
+        model_catalog_format: None,
         env_key: Some("API_KEY".into()),
         keyring_key: None,
         env_key_instructions: None,
@@ -346,6 +349,7 @@ fn test_create_amazon_bedrock_provider() {
             name: "Amazon Bedrock".to_string(),
             base_url: None,
             model_catalog_url: None,
+            model_catalog_format: None,
             env_key: None,
             keyring_key: None,
             env_key_instructions: None,
@@ -873,6 +877,7 @@ model_catalog_url = "https://gateway.example/codex/catalog?token=catalog-secret"
         ModelProviderInfo {
             name: "Gateway".to_string(),
             base_url: Some("https://gateway.example/v1".to_string()),
+            model_catalog_format: None,
             model_catalog_url: Some(
                 "https://gateway.example/codex/catalog?token=catalog-secret".into()
             ),

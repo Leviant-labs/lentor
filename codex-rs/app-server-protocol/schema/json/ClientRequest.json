@@ -2404,6 +2404,36 @@
     "ModelProviderCapabilitiesReadParams": {
       "type": "object"
     },
+    "ModelProviderConfigureParams": {
+      "description": "Configures an API-key provider without persisting its secret in config.toml.",
+      "properties": {
+        "apiKey": {
+          "type": "string"
+        },
+        "baseUrl": {
+          "type": "string"
+        },
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "providerId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "apiKey",
+        "baseUrl",
+        "name",
+        "providerId"
+      ],
+      "type": "object"
+    },
     "MultiAgentMode": {
       "description": "Controls the effective multi-agent delegation instructions for a turn. `custom` means the configured mode hint defines the policy instead of a built-in policy.",
       "oneOf": [
@@ -7928,6 +7958,30 @@
         "params"
       ],
       "title": "Model/listRequest",
+      "type": "object"
+    },
+    {
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/RequestId"
+        },
+        "method": {
+          "enum": [
+            "modelProvider/configure"
+          ],
+          "title": "ModelProvider/configureRequestMethod",
+          "type": "string"
+        },
+        "params": {
+          "$ref": "#/definitions/ModelProviderConfigureParams"
+        }
+      },
+      "required": [
+        "id",
+        "method",
+        "params"
+      ],
+      "title": "ModelProvider/configureRequest",
       "type": "object"
     },
     {

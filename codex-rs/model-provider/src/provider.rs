@@ -645,6 +645,7 @@ mod tests {
             name: "mock".into(),
             base_url: Some(base_url),
             model_catalog_url: None,
+            model_catalog_format: None,
             env_key: None,
             keyring_key: None,
             env_key_instructions: None,

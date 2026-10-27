@@ -62,6 +62,7 @@ mod tests {
             name: "Custom".to_string(),
             base_url: None,
             model_catalog_url: None,
+            model_catalog_format: None,
             env_key: Some("sk-should-not-leak".to_string()),
             keyring_key: None,
             env_key_instructions: None,

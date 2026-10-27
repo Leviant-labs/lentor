@@ -389,7 +389,10 @@ impl StaticModelsManager {
 
 impl ModelsManager for OpenAiModelsManager {
     fn catalog_error(&self) -> Option<String> {
-        self.catalog_error.read().unwrap_or_else(std::sync::PoisonError::into_inner).clone()
+        self.catalog_error
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clone()
     }
     fn set_api_key_model_discovery_enabled(&self, enabled: bool) {
         self.api_key_model_discovery_enabled
@@ -514,10 +517,6 @@ impl OpenAiModelsManager {
         let refresh = self
             .refresh_available_models(refresh_strategy, &http_client_factory)
             .await;
-        if matches!(&self.catalog_source, CatalogSource::ExplicitProvider(_)) {
-            *self.catalog_error.write().unwrap_or_else(std::sync::PoisonError::into_inner) =
-                refresh.as_ref().err().map(ToString::to_string);
-        }
         if let Err(err) = refresh {
             error!("failed to refresh available models: {err}");
         }
@@ -613,6 +612,13 @@ impl OpenAiModelsManager {
                 // explicitly rejected. Provider/auth identity checks still govern reuse.
                 let is_provider_catalog =
                     matches!(&self.catalog_source, CatalogSource::ExplicitProvider(_));
+                if is_provider_catalog && request_identity == self.endpoint_client.identity() {
+                    *self
+                        .catalog_error
+                        .write()
+                        .unwrap_or_else(std::sync::PoisonError::into_inner) =
+                        Some(error.to_string());
+                }
                 let access_denied = matches!(error.http_status_code_value(), Some(401 | 403));
                 let credentials_rejected = matches!(
                     error.details(),
@@ -671,7 +677,14 @@ impl OpenAiModelsManager {
         {
             error!("failed to write models cache: {err}");
         }
-        self.apply_remote_models(entry).await;
+        if self.apply_remote_models(entry).await
+            && matches!(&self.catalog_source, CatalogSource::ExplicitProvider(_))
+        {
+            *self
+                .catalog_error
+                .write()
+                .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
+        }
         Ok(())
     }
 

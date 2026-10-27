@@ -101,3 +101,15 @@ fn cache_identity_tracks_catalog_url() {
     assert_ne!(bundled, first);
     assert_ne!(first, second);
 }
+
+#[test]
+fn cache_identity_separates_generic_and_native_catalogs() {
+    let mut provider =
+        ModelProviderInfo::create_openai_provider(Some("https://gateway.example/v1".into()));
+    provider.model_catalog_url = Some("https://gateway.example/models".into());
+    let native = identity(&provider, None).unwrap();
+    provider.model_catalog_format = Some(codex_model_provider_info::ModelCatalogFormat::OpenAi);
+    assert_ne!(native, identity(&provider, None).unwrap());
+    provider.model_catalog_format = Some(codex_model_provider_info::ModelCatalogFormat::Codex);
+    assert_eq!(native, identity(&provider, None).unwrap());
+}

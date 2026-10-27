@@ -637,6 +637,7 @@ mod thread_processor_behavior_tests {
             name: "session".to_string(),
             base_url: Some("http://127.0.0.1:8061/api/codex".to_string()),
             model_catalog_url: None,
+            model_catalog_format: None,
             env_key: None,
             keyring_key: None,
             env_key_instructions: None,

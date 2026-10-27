@@ -135,6 +135,16 @@ impl<'de> Deserialize<'de> for WireApi {
     }
 }
 
+/// The schema and trust contract used to decode an explicit model catalog.
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum ModelCatalogFormat {
+    /// A trusted Codex-native catalog with complete model metadata.
+    Codex,
+    /// An OpenAI-compatible catalog with bounded, untrusted metadata.
+    OpenAi,
+}
+
 /// Serializable representation of a provider definition.
 #[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, JsonSchema)]
 #[schemars(deny_unknown_fields)]
@@ -147,6 +157,8 @@ pub struct ModelProviderInfo {
     /// Optional full URL for a Codex-native model catalog. When unset, OpenAI discovery
     /// uses the Codex backend unless `base_url` overrides the inference endpoint.
     pub model_catalog_url: Option<RedactedString>,
+    /// Catalog format; omitted preserves the trusted Codex-native contract.
+    pub model_catalog_format: Option<ModelCatalogFormat>,
     /// Environment variable that stores the user's API key for this provider.
     pub env_key: Option<String>,
     /// Reference to a provider credential stored in the operating-system keyring.
@@ -546,6 +558,7 @@ other non-default provider fields are not supported"
             name: OPENAI_PROVIDER_NAME.into(),
             base_url,
             model_catalog_url: None,
+            model_catalog_format: None,
             env_key: None,
             keyring_key: None,
             env_key_instructions: None,
@@ -594,6 +607,7 @@ other non-default provider fields are not supported"
             // endpoint override.
             base_url: None,
             model_catalog_url: None,
+            model_catalog_format: None,
             env_key: None,
             keyring_key: None,
             env_key_instructions: None,
@@ -777,6 +791,7 @@ pub fn create_oss_provider_with_base_url(base_url: &str, wire_api: WireApi) -> M
         name: "gpt-oss".into(),
         base_url: Some(base_url.into()),
         model_catalog_url: None,
+        model_catalog_format: None,
         env_key: None,
         keyring_key: None,
         env_key_instructions: None,

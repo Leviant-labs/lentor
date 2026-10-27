@@ -26,7 +26,7 @@ pub enum ProviderCredentialError {
 impl fmt::Display for ProviderCredentialError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
-            Self::InvalidEndpoint => "provider endpoint must be an absolute HTTP(S) base URL without embedded credentials, query, or fragment",
+            Self::InvalidEndpoint => "provider endpoint must be an HTTPS base URL (or HTTP on loopback) without embedded credentials, query, or fragment",
             Self::InvalidReference => "provider credential reference is invalid",
             Self::EmptyKey => "provider API key must contain 1 to 16384 non-control bytes",
             Self::StoreFailed => "provider credential store is unavailable",
@@ -69,6 +69,13 @@ fn endpoint(base_url: &str) -> Result<String, ProviderCredentialError> {
     let mut url = Url::parse(base_url).map_err(|_| ProviderCredentialError::InvalidEndpoint)?;
     if !matches!(url.scheme(), "http" | "https")
         || url.host_str().is_none()
+        || (url.scheme() == "http"
+            && !match url.host() {
+                Some(url::Host::Domain(host)) => host.eq_ignore_ascii_case("localhost"),
+                Some(url::Host::Ipv4(host)) => host.is_loopback(),
+                Some(url::Host::Ipv6(host)) => host.is_loopback(),
+                None => false,
+            })
         || !url.username().is_empty()
         || url.password().is_some()
         || url.query().is_some()
@@ -79,6 +86,23 @@ fn endpoint(base_url: &str) -> Result<String, ProviderCredentialError> {
     let path = url.path().trim_end_matches('/').to_string();
     url.set_path(&path);
     Ok(url.as_str().trim_end_matches('/').to_string())
+}
+
+pub(crate) fn validate_catalog_destination(
+    base_url: &str,
+    catalog_url: &str,
+) -> Result<(), ProviderCredentialError> {
+    let base =
+        Url::parse(&endpoint(base_url)?).map_err(|_| ProviderCredentialError::InvalidEndpoint)?;
+    let catalog = Url::parse(catalog_url).map_err(|_| ProviderCredentialError::InvalidEndpoint)?;
+    if catalog.origin() != base.origin()
+        || !catalog.username().is_empty()
+        || catalog.password().is_some()
+        || catalog.fragment().is_some()
+    {
+        return Err(ProviderCredentialError::EndpointMismatch);
+    }
+    Ok(())
 }
 
 fn validate_reference(reference: &str) -> Result<(), ProviderCredentialError> {

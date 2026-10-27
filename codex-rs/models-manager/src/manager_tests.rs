@@ -1283,6 +1283,28 @@ async fn authoritative_catalog_refresh_failure_preserves_snapshot_and_freshness(
 }
 
 #[tokio::test]
+async fn catalog_refresh_error_survives_offline_reads_until_a_successful_fetch() {
+    let endpoint =
+        TestModelsEndpoint::with_command_auth(vec![Err(CodexErr::RequestTimeout), Ok(Vec::new())]);
+    let manager = OpenAiModelsManager::new_without_cache(endpoint, /*auth_manager*/ None)
+        .with_provider_catalog();
+    manager
+        .raw_model_catalog(RefreshStrategy::Online, DEFAULT_HTTP_CLIENT_FACTORY)
+        .await;
+    let failure = manager
+        .catalog_error()
+        .expect("refresh failure is surfaced");
+    manager
+        .raw_model_catalog(RefreshStrategy::Offline, DEFAULT_HTTP_CLIENT_FACTORY)
+        .await;
+    assert_eq!(manager.catalog_error(), Some(failure));
+    manager
+        .raw_model_catalog(RefreshStrategy::Online, DEFAULT_HTTP_CLIENT_FACTORY)
+        .await;
+    assert_eq!(manager.catalog_error(), None);
+}
+
+#[tokio::test]
 async fn failed_discovery_does_not_reuse_a_catalog_from_another_identity() {
     let stored = ModelsCacheEntry {
         fetched_at: Utc::now(),

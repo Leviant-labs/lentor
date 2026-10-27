@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::num::NonZeroU64;
 use std::time::Duration;
 
+use codex_model_provider_info::ModelCatalogFormat;
 use codex_model_provider_info::ModelProviderInfo;
 use codex_model_provider_info::WireApi;
 use codex_protocol::config_types::ModelProviderAuthInfo;
@@ -175,6 +176,12 @@ fn model_provider_from_proto(
         name: provider.name,
         base_url: provider.base_url,
         model_catalog_url: provider.model_catalog_url.map(Into::into),
+        model_catalog_format: match provider.model_catalog_format.as_deref() {
+            None => None,
+            Some("codex") => Some(ModelCatalogFormat::Codex),
+            Some("openai") => Some(ModelCatalogFormat::OpenAi),
+            Some(_) => return Err(parse_error("remote thread config returned unknown model_catalog_format")),
+        },
         env_key: provider.env_key,
         keyring_key: None,
         env_key_instructions: provider.env_key_instructions,
@@ -211,6 +218,8 @@ fn model_provider_to_proto(
         name,
         base_url,
         model_catalog_url,
+        model_catalog_format,
+        keyring_key: _,
         env_key,
         env_key_instructions,
         experimental_bearer_token,
@@ -237,6 +246,10 @@ fn model_provider_to_proto(
         name,
         base_url,
         model_catalog_url: model_catalog_url.map(RedactedString::into_inner),
+        model_catalog_format: model_catalog_format.map(|format| match format {
+            ModelCatalogFormat::Codex => "codex".to_string(),
+            ModelCatalogFormat::OpenAi => "openai".to_string(),
+        }),
         env_key,
         env_key_instructions,
         experimental_bearer_token: experimental_bearer_token.map(RedactedString::into_inner),
@@ -458,6 +471,33 @@ mod tests {
     }
 
     #[test]
+    fn model_catalog_format_roundtrips_in_remote_provider() {
+        use prost::Message;
+
+        for (format, wire_value) in [
+            (None, None),
+            (Some(ModelCatalogFormat::Codex), Some("codex")),
+            (Some(ModelCatalogFormat::OpenAi), Some("openai")),
+        ] {
+            let mut expected = expected_provider();
+            expected.model_catalog_format = format;
+            let proto = model_provider_to_proto("local", expected.clone());
+            assert_eq!(proto.model_catalog_format.as_deref(), wire_value);
+            let encoded = proto.encode_to_vec();
+            let decoded = proto::ModelProvider::decode(encoded.as_slice()).unwrap();
+            assert_eq!(model_provider_from_proto(decoded).unwrap(), ("local".to_string(), expected));
+        }
+    }
+
+    #[test]
+    fn remote_provider_rejects_unknown_model_catalog_format() {
+        let mut provider = model_provider_to_proto("local", expected_provider());
+        provider.model_catalog_format = Some("unknown".to_string());
+        let error = model_provider_from_proto(provider).unwrap_err();
+        assert_eq!(error.code, ThreadConfigLoadErrorCode::Parse);
+    }
+
+    #[test]
     fn model_provider_proto_defaults_standalone_web_search_to_false() {
         let expected = ModelProviderInfo {
             supports_standalone_web_search: false,
@@ -485,8 +525,8 @@ mod tests {
                             model_catalog_url: Some(
                                 "http://127.0.0.1:8061/api/codex/models".to_string(),
                             ),
+                            model_catalog_format: None,
                             env_key: None,
-                            keyring_key: None,
                             env_key_instructions: None,
                             experimental_bearer_token: None,
                             auth: Some(proto::ModelProviderAuthInfo {
@@ -557,6 +597,7 @@ mod tests {
             name: "Local".to_string(),
             base_url: Some("http://127.0.0.1:8061/api/codex".to_string()),
             model_catalog_url: Some("http://127.0.0.1:8061/api/codex/models".into()),
+            model_catalog_format: None,
             env_key: None,
             keyring_key: None,
             env_key_instructions: None,

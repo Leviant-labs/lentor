@@ -1844,6 +1844,30 @@
             },
             "method": {
               "enum": [
+                "modelProvider/configure"
+              ],
+              "title": "ModelProvider/configureRequestMethod",
+              "type": "string"
+            },
+            "params": {
+              "$ref": "#/definitions/v2/ModelProviderConfigureParams"
+            }
+          },
+          "required": [
+            "id",
+            "method",
+            "params"
+          ],
+          "title": "ModelProvider/configureRequest",
+          "type": "object"
+        },
+        {
+          "properties": {
+            "id": {
+              "$ref": "#/definitions/v2/RequestId"
+            },
+            "method": {
+              "enum": [
                 "account/gatewayOAuth/read"
               ],
               "title": "Account/gatewayOAuth/readRequestMethod",
@@ -15955,6 +15979,61 @@
           "webSearch"
         ],
         "title": "ModelProviderCapabilitiesReadResponse",
+        "type": "object"
+      },
+      "ModelProviderConfigureParams": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "description": "Configures an API-key provider without persisting its secret in config.toml.",
+        "properties": {
+          "apiKey": {
+            "type": "string"
+          },
+          "baseUrl": {
+            "type": "string"
+          },
+          "model": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "providerId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "apiKey",
+          "baseUrl",
+          "name",
+          "providerId"
+        ],
+        "title": "ModelProviderConfigureParams",
+        "type": "object"
+      },
+      "ModelProviderConfigureResponse": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "baseUrl": {
+            "type": "string"
+          },
+          "model": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "providerId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "baseUrl",
+          "providerId"
+        ],
+        "title": "ModelProviderConfigureResponse",
         "type": "object"
       },
       "ModelRerouteReason": {
