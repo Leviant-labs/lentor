@@ -96,6 +96,13 @@ impl ChatWidget {
         };
 
         let choices = reasoning_choices(&preset);
+        if choices.is_empty() {
+            self.add_info_message(
+                format!("Reasoning support for {current_model} is unknown: no levels are advertised."),
+                /*hint*/ None,
+            );
+            return true;
+        }
         let configured_effort = self
             .effective_reasoning_effort()
             .unwrap_or_else(|| preset.default_reasoning_effort.clone());
@@ -104,10 +111,7 @@ impl ChatWidget {
         } else if choices.contains(&preset.default_reasoning_effort) {
             preset.default_reasoning_effort
         } else {
-            choices
-                .first()
-                .cloned()
-                .unwrap_or(preset.default_reasoning_effort)
+            choices.first().cloned().expect("non-empty advertised choices")
         };
         let Some(next_effort) =
             next_reasoning_effort(&choices, Some(current_effort.clone()), direction)
@@ -166,9 +170,6 @@ fn reasoning_choices(preset: &ModelPreset) -> Vec<ReasoningEffortConfig> {
         .partition(|effort| !ChatWidget::is_advanced_reasoning_effort(effort));
     advanced_choices.sort_by_key(|effort| matches!(effort, ReasoningEffortConfig::Ultra));
     choices.extend(advanced_choices);
-    if choices.is_empty() {
-        choices.push(preset.default_reasoning_effort.clone());
-    }
     choices
 }
 

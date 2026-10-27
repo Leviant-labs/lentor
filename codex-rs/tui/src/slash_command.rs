@@ -12,7 +12,7 @@ use strum_macros::IntoStaticStr;
 pub enum SlashCommand {
     // DO NOT ALPHA-SORT! Enum order is presentation order in the popup, so
     // more frequently used commands should be listed first.
-    #[strum(serialize = "model", serialize = "models")]
+    #[strum(to_string = "model", serialize = "models")]
     Model,
     Provider,
     Presets,
@@ -270,6 +270,7 @@ impl SlashCommand {
             | SlashCommand::Plan
             | SlashCommand::Cd
             | SlashCommand::Clear
+            | SlashCommand::Provider
             | SlashCommand::Logout
             | SlashCommand::MemoryDrop
             | SlashCommand::MemoryUpdate => false,

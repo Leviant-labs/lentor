@@ -162,7 +162,33 @@ impl App {
             }
             event => (event, None),
         };
+        if self.provider_transition_blocked && matches!(
+            &event,
+            AppEvent::UpdateModel(_)
+                | AppEvent::UpdateReasoningEffort(_)
+                | AppEvent::PersistModelSelection { .. }
+                | AppEvent::SelectSessionModel { .. }
+                | AppEvent::OpenReasoningPopup { .. }
+                | AppEvent::OpenAdvancedReasoningPopup { .. }
+                | AppEvent::ApplyAdvancedReasoning { .. }
+                | AppEvent::ClearUi { .. }
+                | AppEvent::ClearUiAndSubmitUserMessage { .. }
+                | AppEvent::OpenResumePicker
+                | AppEvent::ForkCurrentSession { .. }
+                | AppEvent::SelectAgentThread(_)
+                | AppEvent::StartSide { .. }
+                | AppEvent::StartManagedWorktree { .. }
+        ) {
+            return Ok(AppRunControl::Continue);
+        }
         match event {
+            AppEvent::OpenProviderSetup => self.chat_widget.open_provider_setup(),
+            AppEvent::ConfigureModelProvider(params) => {
+                self.configure_model_provider(app_server, params);
+            }
+            AppEvent::ModelProviderConfigured(result) => {
+                self.finish_model_provider_setup(tui, app_server, result).await;
+            }
             AppEvent::OpenDaemonMenu => self.open_daemon_menu(),
             AppEvent::ConfirmDaemonRestart => self.confirm_daemon_restart(),
             AppEvent::RunDaemonRestart => {
@@ -203,6 +229,10 @@ impl App {
             AppEvent::PluginMentionsLoaded { ref cwd, .. }
                 if cwds_differ(cwd, self.config.cwd.as_path()) => {}
             AppEvent::NewSession { name } => {
+                if self.provider_transition_blocked {
+                    self.chat_widget.add_error_message("Provider setup is incomplete. Retry /provider before starting a new session.".to_string());
+                    return Ok(AppRunControl::Continue);
+                }
                 self.start_fresh_session(
                     tui, app_server, /*session_start_source*/ None,
                     /*initial_user_message*/ None, name,
@@ -1078,6 +1108,10 @@ impl App {
                 self.chat_widget.on_images_prepared(id);
             }
             AppEvent::CodexOp(mut op) => {
+                if self.provider_transition_blocked && matches!(&op, AppCommand::UserTurn { .. }) {
+                    self.chat_widget.add_error_message("Provider setup is incomplete. Retry /provider before sending a message.".to_string());
+                    return Ok(AppRunControl::Continue);
+                }
                 if let AppCommand::OverrideTurnContext {
                     cwd,
                     approval_policy,
@@ -2270,12 +2304,12 @@ impl App {
                 self.chat_widget.on_permission_profiles_loaded(request_id, result);
             }
             AppEvent::FetchModels { request_id } => {
-                if self.chat_widget.model_popup_request_is_current(request_id) {
+                if !self.provider_transition_blocked && self.chat_widget.model_popup_request_is_current(request_id) {
                     app_server.fetch_models(request_id, self.app_event_tx.clone());
                 }
             }
             AppEvent::ModelsLoaded { request_id, result: Ok(models) }
-                if self.chat_widget.model_popup_request_is_current(request_id)
+                if !self.provider_transition_blocked && self.chat_widget.model_popup_request_is_current(request_id)
                     && self.chat_widget.status_account_display() == Some(&StatusAccountDisplay::ApiKey) =>
             {
                 let checked = app_server.constrain_api_key_models(
@@ -2291,6 +2325,9 @@ impl App {
             }
             AppEvent::ModelsLoaded { request_id, result }
             | AppEvent::ApiKeyCompatModelsLoaded { request_id, result } => {
+                if self.provider_transition_blocked {
+                    return Ok(AppRunControl::Continue);
+                }
                 self.chat_widget.on_models_loaded(request_id, result);
                 let catalog = self.chat_widget.model_catalog();
                 if !Arc::ptr_eq(&self.model_catalog, &catalog) {

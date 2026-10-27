@@ -3765,6 +3765,76 @@ async fn model_reasoning_selection_popup_snapshot() {
 }
 
 #[tokio::test]
+async fn model_reasoning_popup_preserves_valid_effort_when_switching_models() {
+    let (mut chat, mut rx, _op_rx) = make_chatwidget_manual(Some("gpt-5.5")).await;
+    chat.set_reasoning_effort(Some(ReasoningEffortConfig::High));
+
+    let mut target = get_available_model(&chat, "gpt-5.5");
+    target.model = "endpoint-model".to_string();
+    target.display_name = "Endpoint Model".to_string();
+    target.default_reasoning_effort = ReasoningEffortConfig::Medium;
+    target.supported_reasoning_efforts = vec![
+        ReasoningEffortPreset {
+            effort: ReasoningEffortConfig::Low,
+            description: "Low".to_string(),
+        },
+        ReasoningEffortPreset {
+            effort: ReasoningEffortConfig::High,
+            description: "High".to_string(),
+        },
+    ];
+    chat.open_reasoning_popup(target);
+    while rx.try_recv().is_ok() {}
+
+    chat.handle_key_event(KeyEvent::from(KeyCode::Enter));
+
+    let selected = std::iter::from_fn(|| rx.try_recv().ok())
+        .find_map(|event| match event {
+            AppEvent::UpdateReasoningEffort(effort) => Some(effort),
+            _ => None,
+        })
+        .expect("reasoning effort selection");
+    assert_eq!(selected, Some(ReasoningEffortConfig::High));
+}
+
+#[tokio::test]
+async fn model_reasoning_popup_shows_unknown_without_advertised_levels() {
+    let (mut chat, mut rx, _op_rx) = make_chatwidget_manual(Some("gpt-5.5")).await;
+    let mut preset = get_available_model(&chat, "gpt-5.5");
+    preset.model = "sparse-endpoint-model".to_string();
+    preset.display_name = "Sparse Endpoint Model".to_string();
+    preset.supported_reasoning_efforts.clear();
+
+    chat.open_reasoning_popup(preset);
+
+    let popup = render_bottom_popup(&chat, /*width*/ 80);
+    assert!(popup.contains("Reasoning support: unknown"));
+    assert!(popup.contains("No reasoning levels are advertised."));
+    assert!(!popup.contains("More reasoning"));
+    assert_chatwidget_snapshot!("model_reasoning_unknown_support", popup);
+    while rx.try_recv().is_ok() {}
+    chat.handle_key_event(KeyEvent::from(KeyCode::Enter));
+    let events = std::iter::from_fn(|| rx.try_recv().ok()).collect::<Vec<_>>();
+    assert!(events.iter().any(|event| matches!(event, AppEvent::UpdateReasoningEffort(None))));
+    assert!(events.iter().any(|event| matches!(event, AppEvent::PersistModelSelection { model, effort: None } if model == "sparse-endpoint-model")));
+}
+
+#[tokio::test]
+async fn incomplete_provider_transition_blocks_picker_and_turn() {
+    let (mut chat, mut rx, _op_rx) = make_chatwidget_manual(Some("gpt-5.5")).await;
+    chat.thread_id = Some(ThreadId::new());
+    chat.block_provider_transition();
+    while rx.try_recv().is_ok() {}
+
+    chat.open_model_popup();
+    chat.submit_user_message(UserMessage::from("keep this draft"));
+    let events = std::iter::from_fn(|| rx.try_recv().ok()).collect::<Vec<_>>();
+    assert!(!events.iter().any(|event| matches!(event, AppEvent::FetchModels { .. })));
+    assert!(!events.iter().any(|event| matches!(event, AppEvent::CodexOp(AppCommand::UserTurn { .. }))));
+    assert!(chat.bottom_pane.composer_text().contains("keep this draft"));
+}
+
+#[tokio::test]
 async fn model_advanced_reasoning_selection_popup_snapshot() {
     let (mut chat, _rx, _op_rx) = make_chatwidget_manual(Some("gpt-5.5")).await;
     chat.set_reasoning_effort(Some(ReasoningEffortConfig::Ultra));

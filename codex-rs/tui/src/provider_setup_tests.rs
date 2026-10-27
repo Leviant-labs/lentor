@@ -36,3 +36,18 @@ fn provider_setup_empty_key_has_visible_error() {
 fn provider_setup_narrow_entry() {
     insta::assert_snapshot!("provider_setup_narrow", rendered(&ProviderSetupForm::new(String::new()), /*width*/ 36));
 }
+
+#[tokio::test]
+async fn provider_setup_view_submits_redacted_configuration() {
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+    let mut view = ProviderSetupView::new("https://gateway.example/v1".to_string(), AppEventSender::new(tx));
+    view.handle_key_event(KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE));
+    view.handle_paste("secret-provider-key".to_string());
+    view.handle_key_event(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+
+    let event = rx.try_recv().expect("configuration event");
+    let AppEvent::ConfigureModelProvider(params) = event else { panic!("expected provider configuration event"); };
+    assert!(!format!("{params:?}").contains("secret-provider-key"));
+    assert_eq!(params.base_url, "https://gateway.example/v1");
+    assert!(view.is_complete());
+}

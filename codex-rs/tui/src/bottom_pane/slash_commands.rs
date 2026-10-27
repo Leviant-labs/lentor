@@ -244,6 +244,15 @@ mod tests {
     }
 
     #[test]
+    fn models_alias_resolves_to_canonical_model_command() {
+        assert_eq!(
+            find_builtin_command("models", all_enabled_flags()),
+            Some(SlashCommand::Model)
+        );
+        assert_eq!(SlashCommand::Model.command(), "model");
+    }
+
+    #[test]
     fn service_tier_commands_are_hidden_when_disabled() {
         let mut flags = all_enabled_flags();
         flags.service_tier_commands_enabled = false;

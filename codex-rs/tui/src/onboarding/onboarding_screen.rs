@@ -116,6 +116,7 @@ pub(crate) struct OnboardingScreenArgs {
 pub(crate) struct OnboardingResult {
     pub directory_trust_persisted: bool,
     pub should_exit: bool,
+    pub custom_provider_configured: bool,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -793,6 +794,12 @@ async fn run_onboarding_screen_inner(
     Ok(OnboardingResult {
         directory_trust_persisted,
         should_exit: onboarding_screen.should_exit(),
+        custom_provider_configured: onboarding_screen.steps.iter().any(|step| {
+            matches!(step, Step::Auth(widget) if matches!(
+                &*widget.sign_in_state.read().unwrap(),
+                SignInState::CustomProviderConfigured
+            ))
+        }),
     })
 }
 

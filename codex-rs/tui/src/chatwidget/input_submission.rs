@@ -135,6 +135,11 @@ impl ChatWidget {
         source: UserMessageSource,
         prepared_images: Option<Vec<UserInput>>,
     ) -> (bool, Option<AppCommand>) {
+        if self.provider_transition_blocked {
+            self.restore_user_message_to_composer(user_message);
+            self.add_error_message("Provider setup is incomplete. Retry /provider before sending a message.".to_string());
+            return (false, None);
+        }
         self.bottom_pane.dismiss_composer_sparkle();
         if self.has_misalignment_policy_violation() {
             return (false, None);

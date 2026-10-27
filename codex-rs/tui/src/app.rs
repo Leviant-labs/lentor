@@ -239,6 +239,7 @@ mod managed_worktree_creation;
 mod misalignment_policy;
 mod model_defaults;
 mod new_session;
+mod provider_setup;
 mod quick_dials;
 mod turn_tips;
 pub(crate) use new_session::has_launch_setting;
@@ -655,6 +656,8 @@ pub(crate) struct App {
     pending_server_version_notice: Option<crate::status::remote_connection::ServerVersionNotice>,
     /// Opens the session picker after event dispatch returns, with a fresh stack.
     pending_open_resume_picker: bool,
+    /// The configured provider changed but no new provider session is attached yet.
+    provider_transition_blocked: bool,
     /// Runs a requested /cd after event dispatch returns, with a fresh stack.
     pending_working_directory_change: Option<working_directory::PendingWorkingDirectoryChange>,
     /// Starts worktree setup after the event handler returns, with a fresh stack.

@@ -16,7 +16,7 @@ struct ModelCommandArgs {
 
 struct ModelCommand {
     model: String,
-    effort: ReasoningEffort,
+    effort: Option<ReasoningEffort>,
     service_tier: Option<String>,
 }
 
@@ -38,18 +38,18 @@ fn resolve_reasoning_effort(
     chat: &ChatWidget,
     args: &ModelCommandArgs,
     model: &ModelPreset,
-) -> Result<ReasoningEffort, String> {
+) -> Result<Option<ReasoningEffort>, String> {
     let Some(effort) = args.effort.as_deref() else {
-        return Ok(if args.model.is_none() {
-            chat.current_reasoning_effort()
-                .unwrap_or_else(|| model.default_reasoning_effort.clone())
-        } else {
-            model.default_reasoning_effort.clone()
-        });
+        let supported = &model.supported_reasoning_efforts;
+        let current = chat.current_reasoning_effort()
+            .filter(|effort| supported.iter().any(|option| &option.effort == effort));
+        return Ok(current.or_else(|| supported.iter()
+            .find(|option| option.effort == model.default_reasoning_effort)
+            .or_else(|| supported.first())
+            .map(|option| option.effort.clone())));
     };
     let supported = if model.supported_reasoning_efforts.is_empty() {
-        (model.default_reasoning_effort.as_str() == effort)
-            .then_some(&model.default_reasoning_effort)
+        None
     } else {
         model
             .supported_reasoning_efforts
@@ -57,9 +57,9 @@ fn resolve_reasoning_effort(
             .find(|option| option.effort.as_str() == effort)
             .map(|option| &option.effort)
     };
-    supported.cloned().ok_or_else(|| {
+    supported.cloned().map(Some).ok_or_else(|| {
         let available = if model.supported_reasoning_efforts.is_empty() {
-            model.default_reasoning_effort.to_string()
+            "unknown (the model advertises no levels)".to_string()
         } else {
             model
                 .supported_reasoning_efforts
@@ -146,6 +146,10 @@ fn resolve_model_command(chat: &ChatWidget, args: &str) -> Result<ModelCommand, 
 
 impl ChatWidget {
     pub(super) fn handle_model_command_args(&mut self, args: &str) {
+        if self.provider_transition_blocked {
+            self.add_error_message("Provider setup is incomplete. Retry /provider before choosing a model.".to_string());
+            return;
+        }
         let command = match resolve_model_command(self, args) {
             Ok(command) => command,
             Err(error) => {
@@ -158,12 +162,12 @@ impl ChatWidget {
             effort,
             service_tier,
         } = command;
-        let warning = self.ultra_reasoning_concurrency_warning(&effort);
+        let warning = effort.as_ref().and_then(|effort| self.ultra_reasoning_concurrency_warning(effort));
         let thread_id = self.sparkle_thread_for_picker_action(&model);
         self.set_queue_autosend_suppressed(/*suppressed*/ true);
         self.app_event_tx.send(
             AstraModelPickerAction::SelectSessionModel {
-                effort: Some(effort),
+                effort,
                 service_tier,
             }
             .into_picker_event(thread_id, model),

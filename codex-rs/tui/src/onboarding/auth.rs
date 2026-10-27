@@ -7,6 +7,8 @@
 
 #![allow(clippy::unwrap_used)]
 
+mod custom_provider;
+
 use codex_app_server_client::AppServerRequestHandle;
 use codex_app_server_protocol::AccountLoginCompletedNotification;
 use codex_app_server_protocol::AccountUpdatedNotification;
@@ -51,6 +53,7 @@ use crate::key_hint::KeyBindingListExt;
 use crate::motion::MotionMode;
 use crate::motion::shimmer_text;
 use crate::onboarding::bedrock::BedrockState;
+use crate::provider_setup::ProviderSetupForm;
 use crate::onboarding::keys;
 use crate::onboarding::onboarding_screen::KeyboardHandler;
 use crate::onboarding::onboarding_screen::StepStateProvider;
@@ -91,6 +94,10 @@ pub(crate) enum SignInState {
     ApiKeyConfigured,
     Bedrock(BedrockState),
     BedrockConfigured,
+    CustomProvider(ProviderSetupForm),
+    CustomProviderConnecting,
+    CustomProviderModels { models: Vec<String>, selected: usize },
+    CustomProviderConfigured,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -99,6 +106,7 @@ pub(crate) enum SignInOption {
     DeviceCode,
     ApiKey,
     Bedrock,
+    CustomProvider,
 }
 
 const API_KEY_DISABLED_MESSAGE: &str = "API key login is disabled.";
@@ -182,6 +190,9 @@ impl ContinueWithDeviceCodeState {
 
 impl KeyboardHandler for AuthModeWidget {
     fn handle_key_event(&mut self, key_event: KeyEvent) {
+        if self.handle_custom_provider_key_event(key_event) {
+            return;
+        }
         if self.handle_bedrock_key_event(&key_event) {
             return;
         }
@@ -233,6 +244,9 @@ impl KeyboardHandler for AuthModeWidget {
     }
 
     fn handle_paste(&mut self, pasted: String) {
+        if self.paste_custom_provider(&pasted) {
+            return;
+        }
         let sign_in_state = self.sign_in_state.read().unwrap();
         match &*sign_in_state {
             SignInState::Bedrock(_) => {
@@ -315,6 +329,7 @@ impl AuthModeWidget {
         self.sign_in_state.read().is_ok_and(|guard| match &*guard {
             SignInState::ApiKeyEntry(_) => true,
             SignInState::Bedrock(state) => state.is_text_entry_active(),
+            SignInState::CustomProvider(_) => true,
             _ => false,
         })
     }
@@ -327,6 +342,7 @@ impl AuthModeWidget {
         self.sign_in_state.read().is_ok_and(|guard| match &*guard {
             SignInState::ApiKeyEntry(state) => !state.value.is_empty(),
             SignInState::Bedrock(state) => state.is_text_entry_active(),
+            SignInState::CustomProvider(_) => true,
             _ => false,
         })
     }
@@ -356,6 +372,7 @@ impl AuthModeWidget {
         }
         if self.is_api_login_allowed() {
             options.push(SignInOption::ApiKey);
+            options.push(SignInOption::CustomProvider);
             if self.bedrock_setup_enabled {
                 options.push(SignInOption::Bedrock);
             }
@@ -371,6 +388,7 @@ impl AuthModeWidget {
         }
         if self.is_api_login_allowed() {
             options.push(SignInOption::ApiKey);
+            options.push(SignInOption::CustomProvider);
             if self.bedrock_setup_enabled {
                 options.push(SignInOption::Bedrock);
             }
@@ -424,6 +442,12 @@ impl AuthModeWidget {
                     self.start_bedrock_discovery();
                 } else if !self.is_api_login_allowed() {
                     self.disallow_api_login();
+                }
+            }
+            SignInOption::CustomProvider => {
+                if self.is_api_login_allowed() {
+                    self.set_error(None);
+                    *self.sign_in_state.write().unwrap() = SignInState::CustomProvider(ProviderSetupForm::new(String::new()));
                 }
             }
         }
@@ -526,6 +550,9 @@ impl AuthModeWidget {
                         "Use Amazon Bedrock",
                         "Connect using your AWS credentials",
                     ));
+                }
+                SignInOption::CustomProvider => {
+                    lines.extend(create_mode_item(idx, option, "Use a custom API endpoint", "Connect with an endpoint and API key"));
                 }
             }
             lines.push("".into());
@@ -1050,10 +1077,14 @@ impl StepStateProvider for AuthModeWidget {
             | SignInState::ChatGptContinueInBrowser(_)
             | SignInState::ChatGptDeviceCode(_)
             | SignInState::ChatGptSuccessMessage
+            | SignInState::CustomProvider(_)
+            | SignInState::CustomProviderConnecting
+            | SignInState::CustomProviderModels { .. }
             | SignInState::Bedrock(_) => StepState::InProgress,
             SignInState::ChatGptSuccess
             | SignInState::ApiKeyConfigured
-            | SignInState::BedrockConfigured => StepState::Complete,
+            | SignInState::BedrockConfigured
+            | SignInState::CustomProviderConfigured => StepState::Complete,
         }
     }
 }
@@ -1090,6 +1121,12 @@ impl WidgetRef for AuthModeWidget {
                 Paragraph::new("✓ Amazon Bedrock configured".green())
                     .wrap(Wrap { trim: false })
                     .render(area, buf);
+            }
+            state @ (SignInState::CustomProvider(_)
+            | SignInState::CustomProviderConnecting
+            | SignInState::CustomProviderModels { .. }
+            | SignInState::CustomProviderConfigured) => {
+                self.render_custom_provider(state, area, buf);
             }
         }
     }
@@ -1317,6 +1354,28 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn custom_provider_requires_discovered_model_selection() {
+        let (mut widget, _tmp) = widget_forced_chatgpt().await;
+        *widget.sign_in_state.write().unwrap() = SignInState::CustomProviderModels {
+            models: vec!["first/Model".to_string(), "second:Model".to_string()],
+            selected: 0,
+        };
+        assert!(matches!(widget.get_step_state(), StepState::InProgress));
+        widget.handle_key_event(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+        let area = Rect::new(/*x*/ 0, /*y*/ 0, /*width*/ 30, /*height*/ 3);
+        let mut buffer = Buffer::empty(area);
+        widget.render_ref(area, &mut buffer);
+        let display = buffer.content.chunks(usize::from(area.width))
+            .map(|row| row.iter().map(|cell| cell.symbol()).collect::<String>().trim_end().to_string())
+            .collect::<Vec<_>>().join("\n");
+        insta::assert_snapshot!(display, @"Select a model
+  first/Model
+> second:Model");
+        assert!(matches!(&*widget.sign_in_state.read().unwrap(),
+            SignInState::CustomProviderModels { selected: 1, .. }));
+    }
+
+    #[tokio::test]
     async fn bedrock_option_requires_feature_and_api_login_permission() {
         let (mut widget, _tmp) = widget_forced_chatgpt().await;
         widget.auth_config.forced_login_method = None;
@@ -1326,6 +1385,7 @@ mod tests {
                 SignInOption::ChatGpt,
                 SignInOption::DeviceCode,
                 SignInOption::ApiKey,
+                SignInOption::CustomProvider,
             ]
         );
 
@@ -1336,6 +1396,7 @@ mod tests {
                 SignInOption::ChatGpt,
                 SignInOption::DeviceCode,
                 SignInOption::ApiKey,
+                SignInOption::CustomProvider,
                 SignInOption::Bedrock,
             ]
         );
@@ -1367,7 +1428,10 @@ mod tests {
           3. Use an OpenAI API key
              Pay for what you use
 
-          4. Use Amazon Bedrock
+          4. Use a custom API endpoint
+             Connect with an endpoint and API key
+
+          5. Use Amazon Bedrock
              Connect using your AWS credentials
 
           Press enter to continue

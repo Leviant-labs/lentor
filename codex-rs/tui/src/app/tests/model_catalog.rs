@@ -24,6 +24,46 @@ fn bedrock_model_presets() -> Vec<ModelPreset> {
 }
 
 #[tokio::test]
+async fn incomplete_provider_transition_rejects_catalog_replies_without_changing_old_settings() -> Result<()> {
+    let (mut app, _rx, _op_rx) = make_test_app_with_channels().await;
+    let mut app_server = start_config_write_test_app_server(&app).await?;
+    let mut tui = crate::tui::test_support::make_test_tui()?;
+    let old_provider = app.chat_widget.config_ref().model_provider_id.clone();
+    let old_model = app.chat_widget.current_model().to_string();
+    let old_effort = app.chat_widget.current_reasoning_effort();
+    let old_catalog = app.chat_widget.model_catalog().try_list_models()?;
+    app.provider_transition_blocked = true;
+    app.chat_widget.block_provider_transition();
+    let request_id = uuid::Uuid::new_v4();
+    app.chat_widget.model_popup_request_id = Some(request_id);
+
+    for result in [Err("discovery failed".to_string()), Ok(Vec::new()), Ok(all_model_presets())] {
+        Box::pin(app.handle_event(
+            &mut tui,
+            &mut app_server,
+            AppEvent::ModelsLoaded { request_id, result },
+        )).await?;
+    }
+    Box::pin(app.handle_event(
+        &mut tui,
+        &mut app_server,
+        AppEvent::UpdateModel("different-provider-model".to_string()),
+    )).await?;
+    assert_eq!(
+        (
+            app.chat_widget.config_ref().model_provider_id.clone(),
+            app.chat_widget.current_model().to_string(),
+            app.chat_widget.current_reasoning_effort(),
+            app.chat_widget.model_catalog().try_list_models()?,
+        ),
+        (old_provider, old_model, old_effort, old_catalog)
+    );
+    assert!(app.provider_transition_blocked);
+    app_server.shutdown().await?;
+    Ok(())
+}
+
+#[tokio::test]
 async fn model_picker_refresh_updates_app_catalog_from_app_server() -> Result<()> {
     let (mut app, mut rx, _op_rx) = make_test_app_with_channels().await;
     let mut app_server = start_config_write_test_app_server(&app).await?;
