@@ -1145,7 +1145,7 @@ client_request_definitions! {
     },
     ModelProviderConfigure => "modelProvider/configure" {
         params: v2::ModelProviderConfigureParams,
-        serialization: None,
+        serialization: global("config"),
         response: v2::ModelProviderConfigureResponse,
     },
     GatewayOAuthRead => "account/gatewayOAuth/read" {

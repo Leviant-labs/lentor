@@ -5,6 +5,8 @@ use codex_app_server_protocol::JSONRPCErrorError;
 use codex_app_server_protocol::MergeStrategy;
 use codex_app_server_protocol::ModelProviderConfigureParams;
 use codex_app_server_protocol::ModelProviderConfigureResponse;
+use codex_app_server_protocol::WriteStatus;
+use codex_features::Feature;
 use codex_model_provider::delete_provider_api_key;
 use codex_model_provider::store_provider_api_key;
 use codex_model_provider_info::built_in_model_providers;
@@ -54,6 +56,7 @@ impl ConfigRequestProcessor {
                     "base_url": base_url,
                     "keyring_key": reference,
                     "model_catalog_url": format!("{base_url}/models"),
+                    "model_catalog_format": "openai",
                     "wire_api": "responses",
                     "requires_openai_auth": false,
                     "supports_websockets": false,
@@ -89,15 +92,35 @@ impl ConfigRequestProcessor {
                 reload_user_config: false,
             })
             .await;
-        if let Err(error) = write {
-            if delete_provider_api_key(&reference).is_err() {
-                return Err(internal_error(
-                    "provider configuration failed and its new credential could not be removed",
-                ));
+        let write = match write {
+            Ok(write) => write,
+            Err(error) => {
+                if delete_provider_api_key(&reference).is_err() {
+                    return Err(internal_error(
+                        "provider configuration failed and its new credential could not be removed",
+                    ));
+                }
+                return Err(error);
             }
-            return Err(error);
-        }
+        };
         self.handle_config_mutation().await;
+        self.model_catalog.invalidate().await;
+        // A successful write is durable even when a higher layer overrides it. Keep
+        // its credential: deleting it would leave the saved reference dangling.
+        // Previous references also remain available to existing and resumed threads;
+        // safe reclamation requires tracking references across processes and sessions.
+        let effective = self.load_latest_config(/*fallback_cwd*/ None).await?;
+        if write.status == WriteStatus::OkOverridden
+            || effective.model_provider_id != provider_id
+            || effective.model_provider.base_url.as_deref() != Some(base_url.as_str())
+            || effective.model_provider.keyring_key.as_deref() != Some(reference.as_str())
+            || effective.model != model
+            || !effective.features.enabled(Feature::ApiKeyModelDiscovery)
+        {
+            return Err(invalid_request(
+                "provider settings were saved but are not effective; check managed configuration or command-line overrides before retrying",
+            ));
+        }
         Ok(ModelProviderConfigureResponse {
             provider_id,
             base_url,
