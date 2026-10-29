@@ -111,7 +111,39 @@ def buildifier_formatter_group(*, check: bool) -> FormatterGroup:
         "-lint=off",
         *buildifier_files,
     ]
-    return FormatterGroup("Bazel/Starlark", (Command(tuple(buildifier_args)),))
+    newline_args = [sys.executable, str(Path(__file__).resolve()), "--bazel-newlines"]
+    newline_check = Command((*newline_args, "check", *buildifier_files))
+    newline_fix = Command((*newline_args, "fix", *buildifier_files))
+    return FormatterGroup(
+        "Bazel/Starlark",
+        (
+            newline_check if check else newline_fix,
+            Command(tuple(buildifier_args)),
+            newline_check,
+        ),
+    )
+
+
+def bazel_newlines(paths: list[str], *, check: bool) -> int:
+    """Ensure buildifier never receives CRLF, which corrupts multiline strings."""
+    failed = False
+    for name in paths:
+        path = REPO_ROOT / name
+        data = path.read_bytes()
+        normalized = data.replace(b"\r\n", b"\n")
+        if b"\r" in normalized:
+            print(
+                f"{name}: contains a carriage return that is not part of CRLF",
+                file=sys.stderr,
+            )
+            failed = True
+        elif data != normalized:
+            if check:
+                print(f"{name}: uses CRLF instead of LF", file=sys.stderr)
+                failed = True
+            else:
+                path.write_bytes(normalized)
+    return int(failed)
 
 
 def python_sdk_formatter_group(*, check: bool) -> FormatterGroup:
@@ -194,12 +226,18 @@ def run_formatter_group(group: FormatterGroup) -> FormatterResult:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--bazel-newlines", choices=("check", "fix"), help=argparse.SUPPRESS)
+    parser.add_argument("paths", nargs="*", help=argparse.SUPPRESS)
     parser.add_argument(
         "--check",
         action="store_true",
         help="check formatting without modifying files",
     )
     args = parser.parse_args()
+    if args.bazel_newlines:
+        return bazel_newlines(args.paths, check=args.bazel_newlines == "check")
+    if args.paths:
+        parser.error("paths are only supported with --bazel-newlines")
     groups = formatter_groups(check=args.check)
 
     failures: list[str] = []
