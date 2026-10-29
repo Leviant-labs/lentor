@@ -2288,7 +2288,8 @@ impl ModelClientSession {
             self.websocket_session.last_request = Some(request);
             self.websocket_session.last_response_from_untraced_warmup = warmup;
             let stream_result = stream_result.map_err(|err| {
-                let response_debug_context = if self.client.state.provider.include_response_debug() {
+                let response_debug_context = if self.client.state.provider.include_response_debug()
+                {
                     extract_response_debug_context_from_api_error(&err)
                 } else {
                     Default::default()

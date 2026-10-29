@@ -2,10 +2,10 @@
 
 use super::*;
 use codex_app_server_protocol::ClientRequest;
-use codex_app_server_protocol::ModelProviderConfigureParams;
-use codex_app_server_protocol::ModelProviderConfigureResponse;
 use codex_app_server_protocol::ModelListParams;
 use codex_app_server_protocol::ModelListResponse;
+use codex_app_server_protocol::ModelProviderConfigureParams;
+use codex_app_server_protocol::ModelProviderConfigureResponse;
 
 impl App {
     pub(super) fn configure_model_provider(
@@ -18,7 +18,8 @@ impl App {
         let request_id = app_server.next_request_id();
         let handle = app_server.request_handle();
         let events = self.app_event_tx.clone();
-        self.chat_widget.add_info_message("Connecting API provider…".to_string(), /*hint*/ None);
+        self.chat_widget
+            .add_info_message("Connecting API provider…".to_string(), /*hint*/ None);
         tokio::spawn(async move {
             let result = handle
                 .request_typed::<ModelProviderConfigureResponse>(
@@ -41,7 +42,8 @@ impl App {
                 self.provider_transition_blocked = true;
                 self.chat_widget.block_provider_transition();
                 let request_id = app_server.next_request_id();
-                let response = app_server.request_handle()
+                let response = app_server
+                    .request_handle()
                     .request_typed::<ModelListResponse>(ClientRequest::ModelList {
                         request_id,
                         params: ModelListParams {
@@ -49,9 +51,12 @@ impl App {
                             limit: None,
                             include_hidden: Some(true),
                         },
-                    }).await;
+                    })
+                    .await;
                 let models = match response {
-                    Ok(response) if response.data.iter().any(|model| !model.hidden) => response.data.into_iter()
+                    Ok(response) if response.data.iter().any(|model| !model.hidden) => response
+                        .data
+                        .into_iter()
                         .map(crate::app_server_session::model_preset_from_api_model)
                         .collect::<Vec<_>>(),
                     _ => {
@@ -66,7 +71,8 @@ impl App {
                 self.start_fresh_session(
                     tui, app_server, /*session_start_source*/ None,
                     /*initial_user_message*/ None, /*new_thread_name*/ None,
-                ).await;
+                )
+                .await;
                 if self.primary_thread_id.is_some()
                     && self.primary_thread_id != previous_thread_id
                     && self.chat_widget.config_ref().model_provider_id == configured.provider_id
@@ -82,7 +88,9 @@ impl App {
                     );
                 }
             }
-            Err(message) => self.chat_widget.add_error_message(format!("{message} Retry /provider.")),
+            Err(message) => self
+                .chat_widget
+                .add_error_message(format!("{message} Retry /provider.")),
         }
     }
 }

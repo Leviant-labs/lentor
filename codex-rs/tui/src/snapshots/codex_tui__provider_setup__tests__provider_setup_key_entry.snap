@@ -1,0 +1,15 @@
+---
+source: tui/src/provider_setup_tests.rs
+assertion_line: 30
+expression: display
+---
+Connect an API provider
+
+  API base URL
+  https://gateway.example/v1
+
+> API key
+  •••••••••••••••••••
+
+Keys are saved in your system credential store.
+Tab switch field · Enter continue/save · Esc cancel

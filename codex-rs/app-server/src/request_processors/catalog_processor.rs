@@ -182,15 +182,13 @@ impl CatalogRequestProcessor {
         &self,
         params: ModelListParams,
     ) -> Result<Option<ClientResponsePayload>, JSONRPCErrorError> {
-        let (config, models_manager) = self
-            .model_catalog
-            .current()
-            .await
-            .map_err(|err| if params.cursor.is_some() {
+        let (config, models_manager) = self.model_catalog.current().await.map_err(|err| {
+            if params.cursor.is_some() {
                 model_list_cursor::invalidated()
             } else {
                 config_load_error(&err)
-            })?;
+            }
+        })?;
         // Gate the same provider used by the catalog, including when its model cache is warm.
         // Resolving credentials may refresh them, but explicit host policy prevents browser login.
         if let Some(gateway) = codex_model_provider::create_model_provider(
@@ -296,7 +294,11 @@ impl CatalogRequestProcessor {
         config: Arc<Config>,
         models_manager: codex_models_manager::manager::SharedModelsManager,
     ) -> Result<ModelListResponse, JSONRPCErrorError> {
-        let cursor = params.cursor.as_deref().map(ModelListCursor::parse).transpose()?;
+        let cursor = params
+            .cursor
+            .as_deref()
+            .map(ModelListCursor::parse)
+            .transpose()?;
         let presets = self
             .model_catalog
             .list_models_from_snapshot(
@@ -311,10 +313,12 @@ impl CatalogRequestProcessor {
                 },
             )
             .await
-            .map_err(|err| if cursor.is_some() {
-                model_list_cursor::invalidated()
-            } else {
-                config_load_error(&err)
+            .map_err(|err| {
+                if cursor.is_some() {
+                    model_list_cursor::invalidated()
+                } else {
+                    config_load_error(&err)
+                }
             })?;
         let models = supported_models(presets, params.include_hidden.unwrap_or(false));
         let version = ModelListCursor::version(&config, &models_manager, &models, &params)?;

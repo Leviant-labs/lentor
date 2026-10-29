@@ -3815,7 +3815,11 @@ async fn model_reasoning_popup_shows_unknown_without_advertised_levels() {
     while rx.try_recv().is_ok() {}
     chat.handle_key_event(KeyEvent::from(KeyCode::Enter));
     let events = std::iter::from_fn(|| rx.try_recv().ok()).collect::<Vec<_>>();
-    assert!(events.iter().any(|event| matches!(event, AppEvent::UpdateReasoningEffort(None))));
+    assert!(
+        events
+            .iter()
+            .any(|event| matches!(event, AppEvent::UpdateReasoningEffort(None)))
+    );
     assert!(events.iter().any(|event| matches!(event, AppEvent::PersistModelSelection { model, effort: None } if model == "sparse-endpoint-model")));
 }
 
@@ -3829,8 +3833,16 @@ async fn incomplete_provider_transition_blocks_picker_and_turn() {
     chat.open_model_popup();
     chat.submit_user_message(UserMessage::from("keep this draft"));
     let events = std::iter::from_fn(|| rx.try_recv().ok()).collect::<Vec<_>>();
-    assert!(!events.iter().any(|event| matches!(event, AppEvent::FetchModels { .. })));
-    assert!(!events.iter().any(|event| matches!(event, AppEvent::CodexOp(AppCommand::UserTurn { .. }))));
+    assert!(
+        !events
+            .iter()
+            .any(|event| matches!(event, AppEvent::FetchModels { .. }))
+    );
+    assert!(
+        !events
+            .iter()
+            .any(|event| matches!(event, AppEvent::CodexOp(AppCommand::UserTurn { .. })))
+    );
     assert!(chat.bottom_pane.composer_text().contains("keep this draft"));
 }
 

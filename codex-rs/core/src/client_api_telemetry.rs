@@ -194,8 +194,8 @@ impl WebsocketTelemetry for ApiTelemetry {
         duration: Duration,
     ) {
         if self.include_response_debug {
-            self.session_telemetry.record_websocket_event(result, duration);
+            self.session_telemetry
+                .record_websocket_event(result, duration);
         }
     }
 }
-

@@ -826,7 +826,10 @@ async fn run_websocket_response_stream(
                     }
                     continue;
                 }
-                if telemetry.as_ref().is_none_or(|t| t.include_response_debug()) {
+                if telemetry
+                    .as_ref()
+                    .is_none_or(|t| t.include_response_debug())
+                {
                     emit_responses_websocket_timing_event(
                         event.kind(),
                         text.as_str(),

@@ -16,32 +16,52 @@ impl ChatWidget {
             return None;
         }
         if let Some(current_effort) = self.effective_reasoning_effort()
-            && preset.supported_reasoning_efforts.iter().any(|option| option.effort == current_effort) {
+            && preset
+                .supported_reasoning_efforts
+                .iter()
+                .any(|option| option.effort == current_effort)
+        {
             return Some(current_effort);
         }
         let default = &preset.default_reasoning_effort;
-        if preset.supported_reasoning_efforts.iter().any(|option| &option.effort == default) {
+        if preset
+            .supported_reasoning_efforts
+            .iter()
+            .any(|option| &option.effort == default)
+        {
             return Some(default.clone());
         }
-        preset.supported_reasoning_efforts.first().map(|option| option.effort.clone())
+        preset
+            .supported_reasoning_efforts
+            .first()
+            .map(|option| option.effort.clone())
     }
 
     pub(crate) fn open_provider_setup(&mut self) {
         let endpoint = if self.config.model_provider_id == "custom-api" {
-            self.config.model_provider.base_url.clone().unwrap_or_default()
+            self.config
+                .model_provider
+                .base_url
+                .clone()
+                .unwrap_or_default()
         } else {
             String::new()
         };
-        self.bottom_pane.show_view(Box::new(
-            crate::provider_setup::ProviderSetupView::new(endpoint, self.app_event_tx.clone()),
-        ));
+        self.bottom_pane
+            .show_view(Box::new(crate::provider_setup::ProviderSetupView::new(
+                endpoint,
+                self.app_event_tx.clone(),
+            )));
     }
 
     /// Open a popup to choose a quick auto model. Selecting "All models"
     /// opens the full picker with every available preset.
     pub(crate) fn open_model_popup(&mut self) {
         if self.provider_transition_blocked {
-            self.add_error_message("Provider setup is incomplete. Retry /provider before choosing a model.".to_string());
+            self.add_error_message(
+                "Provider setup is incomplete. Retry /provider before choosing a model."
+                    .to_string(),
+            );
             return;
         }
         if !self.is_session_configured() {
@@ -174,7 +194,7 @@ impl ChatWidget {
                     )
                 };
                 SelectionItem {
-                    name: preset.display_name.clone(),
+                    name: preset.display_name,
                     description,
                     is_current: model.as_str() == current_model,
                     secondary_action: effort.and_then(|effort| {
@@ -509,15 +529,19 @@ impl ChatWidget {
             let model = preset.model.clone();
             let header = Paragraph::new(vec![
                 Line::from(format!("Reasoning for {}", preset.display_name).bold()),
-                Line::from("Reasoning support: unknown — this model advertises no levels.".yellow()),
+                Line::from("Reasoning support: unknown — this model advertises no levels.".dim()),
                 Line::from("Continue without a reasoning setting.".dim()),
-            ]).wrap(Wrap { trim: false });
+            ])
+            .wrap(Wrap { trim: false });
             self.bottom_pane.show_selection_view(SelectionViewParams {
                 header: Box::new(header),
                 items: vec![SelectionItem {
                     name: "Continue".to_string(),
                     description: Some("No reasoning levels are advertised.".to_string()),
-                    actions: self.model_selection_actions(model, None, false),
+                    actions: self.model_selection_actions(
+                        model, /*effort_for_action*/ None,
+                        /*should_prompt_plan_mode_scope*/ false,
+                    ),
                     dismiss_on_select: true,
                     ..Default::default()
                 }],
@@ -549,12 +573,9 @@ impl ChatWidget {
             || preset.model.starts_with("gpt-5.1-codex-max")
             || preset.model.starts_with("gpt-5.2");
 
-        let all_choices: Vec<ReasoningEffortConfig> = supported
+        let (choices, advanced_choices): (Vec<_>, Vec<_>) = supported
             .iter()
             .map(|option| option.effort.clone())
-            .collect();
-        let (choices, advanced_choices): (Vec<_>, Vec<_>) = all_choices
-            .into_iter()
             .partition(|effort| !Self::is_advanced_reasoning_effort(effort));
 
         if choices.len() == 1 && advanced_choices.is_empty() {
@@ -680,16 +701,15 @@ impl ChatWidget {
         }
 
         let unsupported_current = self.current_model() == preset.model.as_str()
-            && self.effective_reasoning_effort().is_some_and(|effort| {
-                !supported.iter().any(|option| option.effort == effort)
-            });
+            && self
+                .effective_reasoning_effort()
+                .is_some_and(|effort| !supported.iter().any(|option| option.effort == effort));
         let mut header_lines = vec![Line::from(
             format!("Select Reasoning Level for {model_label}").bold(),
         )];
         if unsupported_current {
             header_lines.push(Line::from(
-                "Current reasoning is unsupported; showing advertised levels only."
-                    .yellow(),
+                "Current reasoning is unsupported; showing advertised levels only.".dim(),
             ));
         }
         let header = Paragraph::new(header_lines).wrap(Wrap { trim: false });

@@ -162,23 +162,25 @@ impl App {
             }
             event => (event, None),
         };
-        if self.provider_transition_blocked && matches!(
-            &event,
-            AppEvent::UpdateModel(_)
-                | AppEvent::UpdateReasoningEffort(_)
-                | AppEvent::PersistModelSelection { .. }
-                | AppEvent::SelectSessionModel { .. }
-                | AppEvent::OpenReasoningPopup { .. }
-                | AppEvent::OpenAdvancedReasoningPopup { .. }
-                | AppEvent::ApplyAdvancedReasoning { .. }
-                | AppEvent::ClearUi { .. }
-                | AppEvent::ClearUiAndSubmitUserMessage { .. }
-                | AppEvent::OpenResumePicker
-                | AppEvent::ForkCurrentSession { .. }
-                | AppEvent::SelectAgentThread(_)
-                | AppEvent::StartSide { .. }
-                | AppEvent::StartManagedWorktree { .. }
-        ) {
+        if self.provider_transition_blocked
+            && matches!(
+                &event,
+                AppEvent::UpdateModel(_)
+                    | AppEvent::UpdateReasoningEffort(_)
+                    | AppEvent::PersistModelSelection { .. }
+                    | AppEvent::SelectSessionModel { .. }
+                    | AppEvent::OpenReasoningPopup { .. }
+                    | AppEvent::OpenAdvancedReasoningPopup { .. }
+                    | AppEvent::ApplyAdvancedReasoning { .. }
+                    | AppEvent::ClearUi { .. }
+                    | AppEvent::ClearUiAndSubmitUserMessage { .. }
+                    | AppEvent::OpenResumePicker
+                    | AppEvent::ForkCurrentSession { .. }
+                    | AppEvent::SelectAgentThread(_)
+                    | AppEvent::StartSide { .. }
+                    | AppEvent::StartManagedWorktree { .. }
+            )
+        {
             return Ok(AppRunControl::Continue);
         }
         match event {

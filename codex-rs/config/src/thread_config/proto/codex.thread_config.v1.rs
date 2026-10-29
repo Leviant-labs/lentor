@@ -50,9 +50,7 @@ pub struct ModelProvider {
     #[prost(string, optional, tag = "5")]
     pub env_key_instructions: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(string, optional, tag = "6")]
-    pub experimental_bearer_token: ::core::option::Option<
-        ::prost::alloc::string::String,
-    >,
+    pub experimental_bearer_token: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(message, optional, tag = "7")]
     pub auth: ::core::option::Option<ModelProviderAuthInfo>,
     #[prost(enumeration = "WireApi", tag = "8")]
@@ -85,10 +83,8 @@ pub struct ModelProvider {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct StringMap {
     #[prost(map = "string, string", tag = "1")]
-    pub values: ::std::collections::HashMap<
-        ::prost::alloc::string::String,
-        ::prost::alloc::string::String,
-    >,
+    pub values:
+        ::std::collections::HashMap<::prost::alloc::string::String, ::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ModelProviderAuthInfo {
@@ -136,10 +132,10 @@ pub mod thread_config_loader_client {
         dead_code,
         missing_docs,
         clippy::wildcard_imports,
-        clippy::let_unit_value,
+        clippy::let_unit_value
     )]
-    use tonic::codegen::*;
     use tonic::codegen::http::Uri;
+    use tonic::codegen::*;
     #[derive(Debug, Clone)]
     pub struct ThreadConfigLoaderClient<T> {
         inner: tonic::client::Grpc<T>,
@@ -178,14 +174,13 @@ pub mod thread_config_loader_client {
             F: tonic::service::Interceptor,
             T::ResponseBody: Default,
             T: tonic::codegen::Service<
-                http::Request<tonic::body::Body>,
-                Response = http::Response<
-                    <T as tonic::client::GrpcService<tonic::body::Body>>::ResponseBody,
+                    http::Request<tonic::body::Body>,
+                    Response = http::Response<
+                        <T as tonic::client::GrpcService<tonic::body::Body>>::ResponseBody,
+                    >,
                 >,
-            >,
-            <T as tonic::codegen::Service<
-                http::Request<tonic::body::Body>,
-            >>::Error: Into<StdError> + std::marker::Send + std::marker::Sync,
+            <T as tonic::codegen::Service<http::Request<tonic::body::Body>>>::Error:
+                Into<StdError> + std::marker::Send + std::marker::Sync,
         {
             ThreadConfigLoaderClient::new(InterceptedService::new(inner, interceptor))
         }
@@ -223,27 +218,20 @@ pub mod thread_config_loader_client {
         pub async fn load(
             &mut self,
             request: impl tonic::IntoRequest<super::LoadThreadConfigRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::LoadThreadConfigResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+        ) -> std::result::Result<tonic::Response<super::LoadThreadConfigResponse>, tonic::Status>
+        {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::unknown(format!("Service was not ready: {}", e.into()))
+            })?;
             let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/codex.thread_config.v1.ThreadConfigLoader/Load",
             );
             let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new("codex.thread_config.v1.ThreadConfigLoader", "Load"),
-                );
+            req.extensions_mut().insert(GrpcMethod::new(
+                "codex.thread_config.v1.ThreadConfigLoader",
+                "Load",
+            ));
             self.inner.unary(req, path, codec).await
         }
     }
@@ -255,7 +243,7 @@ pub mod thread_config_loader_server {
         dead_code,
         missing_docs,
         clippy::wildcard_imports,
-        clippy::let_unit_value,
+        clippy::let_unit_value
     )]
     use tonic::codegen::*;
     /// Generated trait containing gRPC methods that should be implemented for use with ThreadConfigLoaderServer.
@@ -264,10 +252,7 @@ pub mod thread_config_loader_server {
         async fn load(
             &self,
             request: tonic::Request<super::LoadThreadConfigRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::LoadThreadConfigResponse>,
-            tonic::Status,
-        >;
+        ) -> std::result::Result<tonic::Response<super::LoadThreadConfigResponse>, tonic::Status>;
     }
     #[derive(Debug)]
     pub struct ThreadConfigLoaderServer<T> {
@@ -290,10 +275,7 @@ pub mod thread_config_loader_server {
                 max_encoding_message_size: None,
             }
         }
-        pub fn with_interceptor<F>(
-            inner: T,
-            interceptor: F,
-        ) -> InterceptedService<Self, F>
+        pub fn with_interceptor<F>(inner: T, interceptor: F) -> InterceptedService<Self, F>
         where
             F: tonic::service::Interceptor,
         {
@@ -348,15 +330,11 @@ pub mod thread_config_loader_server {
                 "/codex.thread_config.v1.ThreadConfigLoader/Load" => {
                     #[allow(non_camel_case_types)]
                     struct LoadSvc<T: ThreadConfigLoader>(pub Arc<T>);
-                    impl<
-                        T: ThreadConfigLoader,
-                    > tonic::server::UnaryService<super::LoadThreadConfigRequest>
-                    for LoadSvc<T> {
+                    impl<T: ThreadConfigLoader>
+                        tonic::server::UnaryService<super::LoadThreadConfigRequest> for LoadSvc<T>
+                    {
                         type Response = super::LoadThreadConfigResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::LoadThreadConfigRequest>,
@@ -390,25 +368,19 @@ pub mod thread_config_loader_server {
                     };
                     Box::pin(fut)
                 }
-                _ => {
-                    Box::pin(async move {
-                        let mut response = http::Response::new(
-                            tonic::body::Body::default(),
-                        );
-                        let headers = response.headers_mut();
-                        headers
-                            .insert(
-                                tonic::Status::GRPC_STATUS,
-                                (tonic::Code::Unimplemented as i32).into(),
-                            );
-                        headers
-                            .insert(
-                                http::header::CONTENT_TYPE,
-                                tonic::metadata::GRPC_CONTENT_TYPE,
-                            );
-                        Ok(response)
-                    })
-                }
+                _ => Box::pin(async move {
+                    let mut response = http::Response::new(tonic::body::Body::default());
+                    let headers = response.headers_mut();
+                    headers.insert(
+                        tonic::Status::GRPC_STATUS,
+                        (tonic::Code::Unimplemented as i32).into(),
+                    );
+                    headers.insert(
+                        http::header::CONTENT_TYPE,
+                        tonic::metadata::GRPC_CONTENT_TYPE,
+                    );
+                    Ok(response)
+                }),
             }
         }
     }

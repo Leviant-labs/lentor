@@ -38,24 +38,39 @@ pub(crate) enum ProviderSetupAction {
 
 impl ProviderSetupForm {
     pub(crate) fn new(endpoint: String) -> Self {
-        Self { endpoint, api_key: String::new(), field: Field::Endpoint, error: None }
+        Self {
+            endpoint,
+            api_key: String::new(),
+            field: Field::Endpoint,
+            error: None,
+        }
     }
 
     pub(crate) fn paste(&mut self, text: &str) {
-        let input = match self.field { Field::Endpoint => &mut self.endpoint, Field::ApiKey => &mut self.api_key };
+        let input = match self.field {
+            Field::Endpoint => &mut self.endpoint,
+            Field::ApiKey => &mut self.api_key,
+        };
         for ch in text.chars().filter(|ch| !ch.is_control()) {
-            if input.len() + ch.len_utf8() > MAX_INPUT_BYTES { break; }
+            if input.len() + ch.len_utf8() > MAX_INPUT_BYTES {
+                break;
+            }
             input.push(ch);
         }
     }
 
     pub(crate) fn key(&mut self, event: KeyEvent) -> Option<ProviderSetupAction> {
-        if event.kind == KeyEventKind::Release { return None; }
+        if event.kind == KeyEventKind::Release {
+            return None;
+        }
         self.error = None;
         match event.code {
             KeyCode::Esc => return Some(ProviderSetupAction::Cancel),
             KeyCode::Tab | KeyCode::BackTab | KeyCode::Up | KeyCode::Down => {
-                self.field = match self.field { Field::Endpoint => Field::ApiKey, Field::ApiKey => Field::Endpoint };
+                self.field = match self.field {
+                    Field::Endpoint => Field::ApiKey,
+                    Field::ApiKey => Field::Endpoint,
+                };
             }
             KeyCode::Enter if matches!(self.field, Field::Endpoint) => self.field = Field::ApiKey,
             KeyCode::Enter => {
@@ -72,12 +87,24 @@ impl ProviderSetupForm {
                 }
             }
             KeyCode::Backspace => {
-                match self.field { Field::Endpoint => &mut self.endpoint, Field::ApiKey => &mut self.api_key }.pop();
+                match self.field {
+                    Field::Endpoint => &mut self.endpoint,
+                    Field::ApiKey => &mut self.api_key,
+                }
+                .pop();
             }
             KeyCode::Char('u') if event.modifiers.contains(KeyModifiers::CONTROL) => {
-                match self.field { Field::Endpoint => &mut self.endpoint, Field::ApiKey => &mut self.api_key }.clear();
+                match self.field {
+                    Field::Endpoint => &mut self.endpoint,
+                    Field::ApiKey => &mut self.api_key,
+                }
+                .clear();
             }
-            KeyCode::Char(ch) if !event.modifiers.intersects(KeyModifiers::CONTROL | KeyModifiers::ALT) => {
+            KeyCode::Char(ch)
+                if !event
+                    .modifiers
+                    .intersects(KeyModifiers::CONTROL | KeyModifiers::ALT) =>
+            {
                 let mut utf8 = [0; 4];
                 self.paste(ch.encode_utf8(&mut utf8));
             }
@@ -88,13 +115,31 @@ impl ProviderSetupForm {
 }
 
 impl Renderable for ProviderSetupForm {
-    fn desired_height(&self, _width: u16) -> u16 { 11 }
+    fn desired_height(&self, _width: u16) -> u16 {
+        11
+    }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
-        let endpoint_marker = if matches!(self.field, Field::Endpoint) { "> " } else { "  " };
-        let key_marker = if matches!(self.field, Field::ApiKey) { "> " } else { "  " };
-        let endpoint = if self.endpoint.is_empty() { "https://provider.example/v1" } else { &self.endpoint };
-        let key = if self.api_key.is_empty() { "(enter key)".to_string() } else { "•".repeat(self.api_key.chars().count().min(48)) };
+        let endpoint_marker = if matches!(self.field, Field::Endpoint) {
+            "> "
+        } else {
+            "  "
+        };
+        let key_marker = if matches!(self.field, Field::ApiKey) {
+            "> "
+        } else {
+            "  "
+        };
+        let endpoint = if self.endpoint.is_empty() {
+            "https://provider.example/v1"
+        } else {
+            &self.endpoint
+        };
+        let key = if self.api_key.is_empty() {
+            "(enter key)".to_string()
+        } else {
+            "•".repeat(self.api_key.chars().count().min(48))
+        };
         let mut lines: Vec<Line<'_>> = vec![
             "Connect an API provider".bold().into(),
             "".into(),
@@ -106,11 +151,23 @@ impl Renderable for ProviderSetupForm {
             "".into(),
         ];
         if let Some(error) = &self.error {
-            lines.extend(textwrap::wrap(error, usize::from(area.width.max(1))).into_iter().map(|line| Line::from(line.into_owned().red())));
+            lines.extend(
+                textwrap::wrap(error, usize::from(area.width.max(1)))
+                    .into_iter()
+                    .map(|line| Line::from(line.into_owned().red())),
+            );
         } else {
-            lines.push("Keys are saved in your system credential store.".dim().into());
+            lines.push(
+                "Keys are saved in your system credential store."
+                    .dim()
+                    .into(),
+            );
         }
-        lines.push("Tab switch field · Enter continue/save · Esc cancel".dim().into());
+        lines.push(
+            "Tab switch field · Enter continue/save · Esc cancel"
+                .dim()
+                .into(),
+        );
         Paragraph::new(lines).render(area, buf);
     }
 }
@@ -123,13 +180,21 @@ pub(crate) struct ProviderSetupView {
 
 impl ProviderSetupView {
     pub(crate) fn new(endpoint: String, events: AppEventSender) -> Self {
-        Self { form: ProviderSetupForm::new(endpoint), events, completion: None }
+        Self {
+            form: ProviderSetupForm::new(endpoint),
+            events,
+            completion: None,
+        }
     }
 }
 
 impl Renderable for ProviderSetupView {
-    fn desired_height(&self, width: u16) -> u16 { self.form.desired_height(width) }
-    fn render(&self, area: Rect, buf: &mut Buffer) { self.form.render(area, buf); }
+    fn desired_height(&self, width: u16) -> u16 {
+        self.form.desired_height(width)
+    }
+    fn render(&self, area: Rect, buf: &mut Buffer) {
+        self.form.render(area, buf);
+    }
 }
 
 impl BottomPaneView for ProviderSetupView {
@@ -143,9 +208,16 @@ impl BottomPaneView for ProviderSetupView {
             None => {}
         }
     }
-    fn handle_paste(&mut self, pasted: String) -> bool { self.form.paste(&pasted); true }
-    fn is_complete(&self) -> bool { self.completion.is_some() }
-    fn completion(&self) -> Option<ViewCompletion> { self.completion }
+    fn handle_paste(&mut self, pasted: String) -> bool {
+        self.form.paste(&pasted);
+        true
+    }
+    fn is_complete(&self) -> bool {
+        self.completion.is_some()
+    }
+    fn completion(&self) -> Option<ViewCompletion> {
+        self.completion
+    }
 }
 
 #[cfg(test)]

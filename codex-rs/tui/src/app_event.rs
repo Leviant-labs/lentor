@@ -1346,7 +1346,9 @@ pub(crate) enum AppEvent {
     },
     OpenProviderSetup,
     ConfigureModelProvider(codex_app_server_protocol::ModelProviderConfigureParams),
-    ModelProviderConfigured(Result<codex_app_server_protocol::ModelProviderConfigureResponse, String>),
+    ModelProviderConfigured(
+        Result<codex_app_server_protocol::ModelProviderConfigureResponse, String>,
+    ),
     /// Finished the API-key compatibility check; do not check the same catalog again.
     ApiKeyCompatModelsLoaded {
         request_id: uuid::Uuid,

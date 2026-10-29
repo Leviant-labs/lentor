@@ -559,7 +559,10 @@ async fn process_sse_with_treatment(
         let sse = match response {
             Ok(Some(Ok(sse))) => sse,
             Ok(Some(Err(e))) => {
-                if telemetry.as_ref().is_none_or(|t| t.include_response_debug()) {
+                if telemetry
+                    .as_ref()
+                    .is_none_or(|t| t.include_response_debug())
+                {
                     debug!("SSE Error: {e:#}");
                 }
                 let error = match e {
@@ -586,7 +589,10 @@ async fn process_sse_with_treatment(
             }
         };
 
-        if telemetry.as_ref().is_none_or(|t| t.include_response_debug()) {
+        if telemetry
+            .as_ref()
+            .is_none_or(|t| t.include_response_debug())
+        {
             trace!("SSE event: {}", &sse.data);
         }
 

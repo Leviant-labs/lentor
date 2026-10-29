@@ -44,15 +44,22 @@ impl AuthModeWidget {
                 match crate::config_update::write_config_batch(handle, edits).await {
                     Ok(_) => *state.write().unwrap() = SignInState::CustomProviderConfigured,
                     Err(_) => {
-                        *error.write().unwrap() = Some("Could not save the selected model. Configure the provider again.".to_string());
-                        *state.write().unwrap() = SignInState::CustomProvider(ProviderSetupForm::new(String::new()));
+                        *error.write().unwrap() = Some(
+                            "Could not save the selected model. Configure the provider again."
+                                .to_string(),
+                        );
+                        *state.write().unwrap() =
+                            SignInState::CustomProvider(ProviderSetupForm::new(String::new()));
                     }
                 }
                 frame.schedule_frame();
             });
             return true;
         }
-        if matches!(&*self.sign_in_state.read().unwrap(), SignInState::CustomProviderModels { .. }) {
+        if matches!(
+            &*self.sign_in_state.read().unwrap(),
+            SignInState::CustomProviderModels { .. }
+        ) {
             self.request_frame.schedule_frame();
             return true;
         }
@@ -86,30 +93,46 @@ impl AuthModeWidget {
                         ).await;
                         match result {
                             Ok(_) => {
-                                let models = handle.request_typed::<codex_app_server_protocol::ModelListResponse>(
-                                    ClientRequest::ModelList {
-                                        request_id: onboarding_request_id(),
-                                        params: codex_app_server_protocol::ModelListParams {
-                                            cursor: None, limit: None, include_hidden: Some(false),
+                                let models = handle
+                                    .request_typed::<codex_app_server_protocol::ModelListResponse>(
+                                        ClientRequest::ModelList {
+                                            request_id: onboarding_request_id(),
+                                            params: codex_app_server_protocol::ModelListParams {
+                                                cursor: None,
+                                                limit: None,
+                                                include_hidden: Some(false),
+                                            },
                                         },
-                                    },
-                                ).await;
+                                    )
+                                    .await;
                                 match models {
-                                    Ok(response) if response.data.iter().any(|model| !model.hidden) => {
-                                        *state.write().unwrap() = SignInState::CustomProviderModels {
-                                            models: response.data.into_iter().filter(|model| !model.hidden).map(|model| model.model).collect(),
-                                            selected: 0,
-                                        };
+                                    Ok(response)
+                                        if response.data.iter().any(|model| !model.hidden) =>
+                                    {
+                                        *state.write().unwrap() =
+                                            SignInState::CustomProviderModels {
+                                                models: response
+                                                    .data
+                                                    .into_iter()
+                                                    .filter(|model| !model.hidden)
+                                                    .map(|model| model.model)
+                                                    .collect(),
+                                                selected: 0,
+                                            };
                                     }
                                     _ => {
                                         *error.write().unwrap() = Some("Model discovery failed or returned no models. Configure the provider again.".to_string());
-                                        *state.write().unwrap() = SignInState::CustomProvider(ProviderSetupForm::new(String::new()));
+                                        *state.write().unwrap() = SignInState::CustomProvider(
+                                            ProviderSetupForm::new(String::new()),
+                                        );
                                     }
                                 }
                             }
                             Err(_) => {
                                 *error.write().unwrap() = Some("Could not configure the API provider. Check the endpoint and credential store, then try again.".to_string());
-                                *state.write().unwrap() = SignInState::CustomProvider(ProviderSetupForm::new(String::new()));
+                                *state.write().unwrap() = SignInState::CustomProvider(
+                                    ProviderSetupForm::new(String::new()),
+                                );
                             }
                         }
                         frame.schedule_frame();
@@ -137,8 +160,14 @@ impl AuthModeWidget {
             SignInState::CustomProvider(form) => {
                 form.render(area, buf);
                 if let Some(error) = self.error_message() {
-                    let error_area = Rect { y: area.y.saturating_add(11), height: area.height.saturating_sub(11), ..area };
-                    Paragraph::new(error.red()).wrap(Wrap { trim: false }).render(error_area, buf);
+                    let error_area = Rect {
+                        y: area.y.saturating_add(11),
+                        height: area.height.saturating_sub(11),
+                        ..area
+                    };
+                    Paragraph::new(error.red())
+                        .wrap(Wrap { trim: false })
+                        .render(error_area, buf);
                 }
             }
             SignInState::CustomProviderConnecting => {
@@ -148,10 +177,12 @@ impl AuthModeWidget {
                 let mut lines = vec![Line::from("Select a model".bold())];
                 let capacity = usize::from(area.height.saturating_sub(1)).max(1);
                 let start = selected.saturating_add(1).saturating_sub(capacity);
-                lines.extend(models.iter().enumerate().skip(start).take(capacity).map(|(index, model)| {
-                    let marker = if index == *selected { "> " } else { "  " };
-                    Line::from(format!("{marker}{model}"))
-                }));
+                lines.extend(models.iter().enumerate().skip(start).take(capacity).map(
+                    |(index, model)| {
+                        let marker = if index == *selected { "> " } else { "  " };
+                        Line::from(format!("{marker}{model}"))
+                    },
+                ));
                 Paragraph::new(lines).render(area, buf);
             }
             SignInState::CustomProviderConfigured => {

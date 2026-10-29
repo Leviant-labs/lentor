@@ -1,0 +1,15 @@
+---
+source: tui/src/provider_setup_tests.rs
+assertion_line: 56
+expression: "rendered(&form, 70)"
+---
+Connect an API provider
+
+  API base URL
+  https://gateway.example/v1
+
+> API key
+  (enter key)
+
+Enter an API endpoint and API key.
+Tab switch field · Enter continue/save · Esc cancel

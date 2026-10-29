@@ -1,0 +1,15 @@
+---
+source: tui/src/provider_setup_tests.rs
+assertion_line: 61
+expression: "rendered(&ProviderSetupForm::new(String::new()), 36)"
+---
+Connect an API provider
+
+> API base URL
+  https://provider.example/v1
+
+  API key
+  (enter key)
+
+Keys are saved in your system creden
+Tab switch field · Enter continue/sa

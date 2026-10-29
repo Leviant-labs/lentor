@@ -1,0 +1,13 @@
+---
+source: tui/src/chatwidget/tests/popups_and_settings.rs
+assertion_line: 3814
+expression: popup
+---
+  Reasoning for Sparse Endpoint Model
+  Reasoning support: unknown — this model advertises no levels.
+  Continue without a reasoning setting.
+
+
+› 1. Continue  No reasoning levels are advertised.
+
+  enter select · esc back

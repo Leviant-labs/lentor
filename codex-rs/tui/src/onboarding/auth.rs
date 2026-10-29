@@ -53,10 +53,10 @@ use crate::key_hint::KeyBindingListExt;
 use crate::motion::MotionMode;
 use crate::motion::shimmer_text;
 use crate::onboarding::bedrock::BedrockState;
-use crate::provider_setup::ProviderSetupForm;
 use crate::onboarding::keys;
 use crate::onboarding::onboarding_screen::KeyboardHandler;
 use crate::onboarding::onboarding_screen::StepStateProvider;
+use crate::provider_setup::ProviderSetupForm;
 use crate::terminal_hyperlinks::HyperlinkLine;
 use crate::terminal_hyperlinks::mark_buffer_hyperlinks;
 use crate::terminal_hyperlinks::visible_lines;
@@ -96,7 +96,10 @@ pub(crate) enum SignInState {
     BedrockConfigured,
     CustomProvider(ProviderSetupForm),
     CustomProviderConnecting,
-    CustomProviderModels { models: Vec<String>, selected: usize },
+    CustomProviderModels {
+        models: Vec<String>,
+        selected: usize,
+    },
     CustomProviderConfigured,
 }
 
@@ -451,7 +454,8 @@ impl AuthModeWidget {
             SignInOption::CustomProvider => {
                 if self.is_api_login_allowed() {
                     self.set_error(None);
-                    *self.sign_in_state.write().unwrap() = SignInState::CustomProvider(ProviderSetupForm::new(String::new()));
+                    *self.sign_in_state.write().unwrap() =
+                        SignInState::CustomProvider(ProviderSetupForm::new(String::new()));
                 }
             }
         }
@@ -556,7 +560,12 @@ impl AuthModeWidget {
                     ));
                 }
                 SignInOption::CustomProvider => {
-                    lines.extend(create_mode_item(idx, option, "Use a custom API endpoint", "Connect with an endpoint and API key"));
+                    lines.extend(create_mode_item(
+                        idx,
+                        option,
+                        "Use a custom API endpoint",
+                        "Connect with an endpoint and API key",
+                    ));
                 }
             }
             lines.push("".into());
@@ -1366,17 +1375,30 @@ mod tests {
         };
         assert!(matches!(widget.get_step_state(), StepState::InProgress));
         widget.handle_key_event(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
-        let area = Rect::new(/*x*/ 0, /*y*/ 0, /*width*/ 30, /*height*/ 3);
+        let area = Rect::new(
+            /*x*/ 0, /*y*/ 0, /*width*/ 30, /*height*/ 3,
+        );
         let mut buffer = Buffer::empty(area);
         widget.render_ref(area, &mut buffer);
-        let display = buffer.content.chunks(usize::from(area.width))
-            .map(|row| row.iter().map(|cell| cell.symbol()).collect::<String>().trim_end().to_string())
-            .collect::<Vec<_>>().join("\n");
+        let display = buffer
+            .content
+            .chunks(usize::from(area.width))
+            .map(|row| {
+                row.iter()
+                    .map(ratatui::buffer::Cell::symbol)
+                    .collect::<String>()
+                    .trim_end()
+                    .to_string()
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
         insta::assert_snapshot!(display, @"Select a model
   first/Model
 > second:Model");
-        assert!(matches!(&*widget.sign_in_state.read().unwrap(),
-            SignInState::CustomProviderModels { selected: 1, .. }));
+        assert!(matches!(
+            &*widget.sign_in_state.read().unwrap(),
+            SignInState::CustomProviderModels { selected: 1, .. }
+        ));
     }
 
     #[tokio::test]
@@ -1385,11 +1407,17 @@ mod tests {
         widget.auth_config.forced_login_method = None;
         widget.bedrock_setup_enabled = true;
         widget.handle_key_event(KeyEvent::new(KeyCode::Char('5'), KeyModifiers::NONE));
-        assert!(matches!(&*widget.sign_in_state.read().unwrap(), SignInState::Bedrock(_)));
+        assert!(matches!(
+            &*widget.sign_in_state.read().unwrap(),
+            SignInState::Bedrock(_)
+        ));
 
-        *widget.sign_in_state.write().unwrap() = SignInState::ApiKeyEntry(ApiKeyInputState::default());
+        *widget.sign_in_state.write().unwrap() =
+            SignInState::ApiKeyEntry(ApiKeyInputState::default());
         widget.handle_key_event(KeyEvent::new(KeyCode::Char('5'), KeyModifiers::NONE));
-        assert!(matches!(&*widget.sign_in_state.read().unwrap(), SignInState::ApiKeyEntry(state) if state.value == "5"));
+        assert!(
+            matches!(&*widget.sign_in_state.read().unwrap(), SignInState::ApiKeyEntry(state) if state.value == "5")
+        );
     }
 
     #[tokio::test]

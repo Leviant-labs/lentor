@@ -365,15 +365,15 @@ impl McpManager {
                     }
                     McpServerContribution::HostedApps { .. } => {}
                     McpServerContribution::HostedPluginConnectors { plugin_id, .. } => {
-                        if config.features.enabled(Feature::Plugins) {
-                            if !disabled_plugin_ids.contains(&plugin_id) {
-                                selected_plugins.push(SelectedPluginIdentity {
-                                    selected_root_id: None,
-                                    plugin_id: CatalogPluginIdentity::Remote {
-                                        remote_plugin_id: plugin_id.clone(),
-                                    },
-                                });
-                            }
+                        if config.features.enabled(Feature::Plugins)
+                            && !disabled_plugin_ids.contains(&plugin_id)
+                        {
+                            selected_plugins.push(SelectedPluginIdentity {
+                                selected_root_id: None,
+                                plugin_id: CatalogPluginIdentity::Remote {
+                                    remote_plugin_id: plugin_id.clone(),
+                                },
+                            });
                         }
                     }
                     McpServerContribution::Remove { name } => {

@@ -121,7 +121,6 @@ mod async_question_reply;
 mod backend_banners;
 mod backend_id;
 mod bottom_pane;
-mod provider_setup;
 mod branch_summary;
 mod chatwidget;
 mod cli;
@@ -140,6 +139,7 @@ mod experimental_features;
 mod markdown_copy;
 mod permission_discovery;
 mod pets;
+mod provider_setup;
 mod security_setup;
 mod worktree_browser;
 pub use custom_terminal::Terminal;
@@ -1423,8 +1423,11 @@ async fn run_ratatui_app(
                 // If this onboarding run included the login step, always refresh the cloud config
                 // bundle and rebuild config. This avoids missing newly available cloud-managed
                 // policy due to login status detection edge cases.
-                if show_login_screen && !onboarding_result.custom_provider_configured
-                    && !uses_remote_workspace && !workload_identity_selected {
+                if show_login_screen
+                    && !onboarding_result.custom_provider_configured
+                    && !uses_remote_workspace
+                    && !workload_identity_selected
+                {
                     cloud_config_bundle = cloud_config_bundle_loader_for_storage(
                         embedded_network_policy.bind_bootstrap_auth(initial_config.auth_config()),
                         /*enable_codex_api_key_env*/ false,

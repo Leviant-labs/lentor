@@ -41,12 +41,16 @@ fn resolve_reasoning_effort(
 ) -> Result<Option<ReasoningEffort>, String> {
     let Some(effort) = args.effort.as_deref() else {
         let supported = &model.supported_reasoning_efforts;
-        let current = chat.current_reasoning_effort()
+        let current = chat
+            .current_reasoning_effort()
             .filter(|effort| supported.iter().any(|option| &option.effort == effort));
-        return Ok(current.or_else(|| supported.iter()
-            .find(|option| option.effort == model.default_reasoning_effort)
-            .or_else(|| supported.first())
-            .map(|option| option.effort.clone())));
+        return Ok(current.or_else(|| {
+            supported
+                .iter()
+                .find(|option| option.effort == model.default_reasoning_effort)
+                .or_else(|| supported.first())
+                .map(|option| option.effort.clone())
+        }));
     };
     let supported = if model.supported_reasoning_efforts.is_empty() {
         None
@@ -147,7 +151,10 @@ fn resolve_model_command(chat: &ChatWidget, args: &str) -> Result<ModelCommand, 
 impl ChatWidget {
     pub(super) fn handle_model_command_args(&mut self, args: &str) {
         if self.provider_transition_blocked {
-            self.add_error_message("Provider setup is incomplete. Retry /provider before choosing a model.".to_string());
+            self.add_error_message(
+                "Provider setup is incomplete. Retry /provider before choosing a model."
+                    .to_string(),
+            );
             return;
         }
         let command = match resolve_model_command(self, args) {
@@ -162,7 +169,9 @@ impl ChatWidget {
             effort,
             service_tier,
         } = command;
-        let warning = effort.as_ref().and_then(|effort| self.ultra_reasoning_concurrency_warning(effort));
+        let warning = effort
+            .as_ref()
+            .and_then(|effort| self.ultra_reasoning_concurrency_warning(effort));
         let thread_id = self.sparkle_thread_for_picker_action(&model);
         self.set_queue_autosend_suppressed(/*suppressed*/ true);
         self.app_event_tx.send(

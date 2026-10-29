@@ -180,7 +180,11 @@ fn model_provider_from_proto(
             None => None,
             Some("codex") => Some(ModelCatalogFormat::Codex),
             Some("openai") => Some(ModelCatalogFormat::OpenAi),
-            Some(_) => return Err(parse_error("remote thread config returned unknown model_catalog_format")),
+            Some(_) => {
+                return Err(parse_error(
+                    "remote thread config returned unknown model_catalog_format",
+                ));
+            }
         },
         env_key: provider.env_key,
         keyring_key: None,
@@ -485,7 +489,10 @@ mod tests {
             assert_eq!(proto.model_catalog_format.as_deref(), wire_value);
             let encoded = proto.encode_to_vec();
             let decoded = proto::ModelProvider::decode(encoded.as_slice()).unwrap();
-            assert_eq!(model_provider_from_proto(decoded).unwrap(), ("local".to_string(), expected));
+            assert_eq!(
+                model_provider_from_proto(decoded).unwrap(),
+                ("local".to_string(), expected)
+            );
         }
     }
 

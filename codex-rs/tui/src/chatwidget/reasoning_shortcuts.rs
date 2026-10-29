@@ -96,13 +96,15 @@ impl ChatWidget {
         };
 
         let choices = reasoning_choices(&preset);
-        if choices.is_empty() {
+        let Some(first_choice) = choices.first() else {
             self.add_info_message(
-                format!("Reasoning support for {current_model} is unknown: no levels are advertised."),
+                format!(
+                    "Reasoning support for {current_model} is unknown: no levels are advertised."
+                ),
                 /*hint*/ None,
             );
             return true;
-        }
+        };
         let configured_effort = self
             .effective_reasoning_effort()
             .unwrap_or_else(|| preset.default_reasoning_effort.clone());
@@ -111,7 +113,7 @@ impl ChatWidget {
         } else if choices.contains(&preset.default_reasoning_effort) {
             preset.default_reasoning_effort
         } else {
-            choices.first().cloned().expect("non-empty advertised choices")
+            first_choice.clone()
         };
         let Some(next_effort) =
             next_reasoning_effort(&choices, Some(current_effort.clone()), direction)

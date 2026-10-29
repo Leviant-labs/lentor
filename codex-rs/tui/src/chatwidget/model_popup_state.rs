@@ -10,7 +10,8 @@ impl ChatWidget {
         self.provider_transition_blocked = true;
         self.model_popup_request_id = None;
         self.bottom_pane.dismiss_view_by_id(MODEL_SELECTION_VIEW_ID);
-        self.bottom_pane.dismiss_view_by_id(ALL_MODELS_SELECTION_VIEW_ID);
+        self.bottom_pane
+            .dismiss_view_by_id(ALL_MODELS_SELECTION_VIEW_ID);
     }
 
     pub(super) fn refresh_account_scoped_models(&mut self) {

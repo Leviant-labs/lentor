@@ -17,19 +17,47 @@ fn safe_http_body(status: StatusCode, body: Option<&str>) -> String {
             let code = error.get("code").and_then(Value::as_str);
             let kind = error.get("type").and_then(Value::as_str);
             let code = match (status, code) {
-                (StatusCode::BAD_REQUEST, Some(code @ ("invalid_prompt" | "cyber_policy" | "bio_policy" | "misalignment_policy_violation")))
+                (
+                    StatusCode::BAD_REQUEST,
+                    Some(
+                        code @ ("invalid_prompt"
+                        | "cyber_policy"
+                        | "bio_policy"
+                        | "misalignment_policy_violation"),
+                    ),
+                )
                 | (StatusCode::FORBIDDEN, Some(code @ "misalignment_policy_violation"))
-                | (StatusCode::SERVICE_UNAVAILABLE, Some(code @ ("server_is_overloaded" | "slow_down")))
-                | (StatusCode::TOO_MANY_REQUESTS, Some(code @ ("flex_unavailable" | "insufficient_quota" | "credit_balance_exhausted" | "organization_spend_limit_exceeded" | "project_spend_limit_exceeded" | "organization_usage_limit_exceeded"))) => Some(code),
+                | (
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    Some(code @ ("server_is_overloaded" | "slow_down")),
+                )
+                | (
+                    StatusCode::TOO_MANY_REQUESTS,
+                    Some(
+                        code @ ("flex_unavailable"
+                        | "insufficient_quota"
+                        | "credit_balance_exhausted"
+                        | "organization_spend_limit_exceeded"
+                        | "project_spend_limit_exceeded"
+                        | "organization_usage_limit_exceeded"),
+                    ),
+                ) => Some(code),
                 _ => None,
             };
             let kind = match (status, kind) {
-                (StatusCode::TOO_MANY_REQUESTS, Some(kind @ ("usage_limit_reached" | "usage_not_included" | "insufficient_quota"))) => Some(kind),
+                (
+                    StatusCode::TOO_MANY_REQUESTS,
+                    Some(
+                        kind
+                        @ ("usage_limit_reached" | "usage_not_included" | "insufficient_quota"),
+                    ),
+                ) => Some(kind),
                 _ => None,
             };
             if code.is_some() || kind.is_some() {
-                let message = (status == StatusCode::SERVICE_UNAVAILABLE && code == Some("slow_down"))
-                    .then_some("Provider rate limit exceeded.");
+                let message = (status == StatusCode::SERVICE_UNAVAILABLE
+                    && code == Some("slow_down"))
+                .then_some("Provider rate limit exceeded.");
                 return serde_json::json!({"error": {"code": code, "type": kind, "message": message}}).to_string();
             }
         }
@@ -44,32 +72,59 @@ fn safe_http_body(status: StatusCode, body: Option<&str>) -> String {
 // metadata controlled by an untrusted endpoint before the standard mapper sees them.
 pub(crate) fn map_untrusted_error(error: ApiError) -> CodexErr {
     let error = match error {
-        ApiError::Transport(TransportError::Http { status, body, retry_after, .. }) => {
-            ApiError::Transport(TransportError::Http {
-                status,
-                url: None,
-                headers: None,
-                body: Some(safe_http_body(status, body.as_deref())),
-                retry_after,
-            })
-        }
-        ApiError::Api { status, .. } => ApiError::Api { status, message: WITHHELD.into() },
+        ApiError::Transport(TransportError::Http {
+            status,
+            body,
+            retry_after,
+            ..
+        }) => ApiError::Transport(TransportError::Http {
+            status,
+            url: None,
+            headers: None,
+            body: Some(safe_http_body(status, body.as_deref())),
+            retry_after,
+        }),
+        ApiError::Api { status, .. } => ApiError::Api {
+            status,
+            message: WITHHELD.into(),
+        },
         ApiError::Stream(_) => ApiError::Stream(WITHHELD.into()),
-        ApiError::Retryable { retry_after, .. } => ApiError::Retryable { message: WITHHELD.into(), retry_after },
-        ApiError::RateLimitExceeded { retry_after, .. } => ApiError::RateLimitExceeded { message: WITHHELD.into(), retry_after },
+        ApiError::Retryable { retry_after, .. } => ApiError::Retryable {
+            message: WITHHELD.into(),
+            retry_after,
+        },
+        ApiError::RateLimitExceeded { retry_after, .. } => ApiError::RateLimitExceeded {
+            message: WITHHELD.into(),
+            retry_after,
+        },
         ApiError::RateLimit(_) => ApiError::RateLimit(WITHHELD.into()),
-        ApiError::InvalidRequest { .. } => ApiError::InvalidRequest { message: WITHHELD.into() },
-        ApiError::InvalidPrompt { .. } => ApiError::InvalidPrompt { message: WITHHELD.into() },
-        ApiError::CyberPolicy { .. } => ApiError::CyberPolicy { message: WITHHELD.into() },
-        ApiError::BioPolicy { .. } => ApiError::BioPolicy { message: WITHHELD.into() },
-        ApiError::MisalignmentPolicyViolation { .. } => ApiError::MisalignmentPolicyViolation { message: WITHHELD.into(), misalignment: None },
+        ApiError::InvalidRequest { .. } => ApiError::InvalidRequest {
+            message: WITHHELD.into(),
+        },
+        ApiError::InvalidPrompt { .. } => ApiError::InvalidPrompt {
+            message: WITHHELD.into(),
+        },
+        ApiError::CyberPolicy { .. } => ApiError::CyberPolicy {
+            message: WITHHELD.into(),
+        },
+        ApiError::BioPolicy { .. } => ApiError::BioPolicy {
+            message: WITHHELD.into(),
+        },
+        ApiError::MisalignmentPolicyViolation { .. } => ApiError::MisalignmentPolicyViolation {
+            message: WITHHELD.into(),
+            misalignment: None,
+        },
         ApiError::ResponseIncomplete(mut incomplete) => {
             incomplete.reason = WITHHELD.into();
             incomplete.response_id = None;
             ApiError::ResponseIncomplete(incomplete)
         }
-        ApiError::Transport(TransportError::Network(_)) => ApiError::Transport(TransportError::Network(WITHHELD.into())),
-        ApiError::Transport(TransportError::Build(_)) => ApiError::Transport(TransportError::Build(WITHHELD.into())),
+        ApiError::Transport(TransportError::Network(_)) => {
+            ApiError::Transport(TransportError::Network(WITHHELD.into()))
+        }
+        ApiError::Transport(TransportError::Build(_)) => {
+            ApiError::Transport(TransportError::Build(WITHHELD.into()))
+        }
         safe @ (ApiError::ContentFilter
         | ApiError::ContextWindowExceeded
         | ApiError::QuotaExceeded

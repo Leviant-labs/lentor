@@ -2,6 +2,7 @@
 """Format repository sources or check that they are already formatted."""
 
 import argparse
+import json
 import os
 import shlex
 import subprocess
@@ -41,11 +42,44 @@ def just_formatter_group(*, check: bool) -> FormatterGroup:
 
 
 def rust_formatter_group(*, check: bool) -> FormatterGroup:
-    args = ["cargo", "fmt", "--", "--config", "imports_granularity=Item"]
+    rustfmt_args = ["--config", "imports_granularity=Item"]
     if check:
-        args.append("--check")
-    command = Command(tuple(args), REPO_ROOT / "codex-rs")
-    return FormatterGroup("Rust", (command,))
+        rustfmt_args.append("--check")
+    workspace = REPO_ROOT / "codex-rs"
+    if os.name != "nt":
+        command = Command(("cargo", "fmt", "--", *rustfmt_args), workspace)
+        return FormatterGroup("Rust", (command,))
+
+    metadata = json.loads(
+        subprocess.check_output(
+            ["cargo", "metadata", "--no-deps", "--format-version", "1"], cwd=workspace
+        )
+    )
+    members = set(metadata["workspace_members"])
+    batches: list[list[str]] = [[]]
+    target_path_chars = 0
+    for package in metadata["packages"]:
+        if package["id"] not in members:
+            continue
+        package_path_chars = sum(
+            len(target["src_path"]) + 3 for target in package["targets"]
+        )
+        # Cargo forwards target paths to rustfmt. Leave ample space below the
+        # Windows 32K command-line limit for quoting, UTF-16, and rustfmt flags.
+        if batches[-1] and target_path_chars + package_path_chars > 12_000:
+            batches.append([])
+            target_path_chars = 0
+        batches[-1].append(package["name"])
+        target_path_chars += package_path_chars
+    commands = []
+    for batch in batches:
+        if not batch:
+            continue
+        args = ["cargo", "fmt"]
+        for package in batch:
+            args.extend(["--package", package])
+        commands.append(Command((*args, "--", *rustfmt_args), workspace))
+    return FormatterGroup("Rust", tuple(commands))
 
 
 def buildifier_formatter_group(*, check: bool) -> FormatterGroup:

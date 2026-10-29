@@ -144,6 +144,15 @@ fn test_model_provider() -> SharedModelProvider {
     test_model_client(SessionSource::Cli).state.provider.clone()
 }
 
+/// Provider trusted to record verbatim response diagnostics, matching the
+/// first-party OpenAI provider configuration.
+fn trusted_test_model_provider() -> SharedModelProvider {
+    create_model_provider(
+        ModelProviderInfo::create_openai_provider(Some("https://api.openai.com/v1".to_string())),
+        /*auth_manager*/ None,
+    )
+}
+
 #[tokio::test]
 async fn workspace_routed_http_rejects_redirects_without_a_routing_header() {
     use codex_client::HttpTransport;
@@ -1688,7 +1697,7 @@ async fn response_stream_records_last_model_feedback_ids() {
         api_stream,
         test_session_telemetry(),
         InferenceTraceAttempt::disabled(),
-        test_model_provider(),
+        trusted_test_model_provider(),
     );
 
     while stream.next().await.is_some() {}
@@ -1698,6 +1707,40 @@ async fn response_stream_records_last_model_feedback_ids() {
         tags.get("last_model_request_id").map(String::as_str),
         Some("\"req-123\"")
     );
+    assert_eq!(
+        tags.get("last_model_response_id").map(String::as_str),
+        Some("\"resp-123\"")
+    );
+}
+
+#[tokio::test]
+async fn response_stream_omits_request_feedback_id_for_untrusted_provider() {
+    let tags = Arc::new(Mutex::new(BTreeMap::new()));
+    let _guard = tracing_subscriber::registry()
+        .with(TagCollectorLayer { tags: tags.clone() })
+        .set_default();
+
+    let api_stream = futures::stream::iter([
+        Ok(ResponseEvent::Created { response_id: None }),
+        Ok(ResponseEvent::Completed {
+            response_id: "resp-123".to_string(),
+            token_usage: None,
+            usage_metadata: None,
+            end_turn: Some(true),
+        }),
+    ]);
+    let (mut stream, _) = super::map_response_events(
+        Some("req-123".to_string()),
+        api_stream,
+        test_session_telemetry(),
+        InferenceTraceAttempt::disabled(),
+        test_model_provider(),
+    );
+
+    while stream.next().await.is_some() {}
+
+    let tags = tags.lock().unwrap().clone();
+    assert_eq!(tags.get("last_model_request_id"), None);
     assert_eq!(
         tags.get("last_model_response_id").map(String::as_str),
         Some("\"resp-123\"")

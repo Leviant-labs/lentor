@@ -791,15 +791,24 @@ async fn run_onboarding_screen_inner(
             },
         )?;
     }
+    let mut custom_provider_configured = false;
+    for step in &onboarding_screen.steps {
+        let Step::Auth(widget) = step else {
+            continue;
+        };
+        let state = widget
+            .sign_in_state
+            .read()
+            .map_err(|_| std::io::Error::other("API provider setup state is unavailable"))?;
+        if matches!(&*state, SignInState::CustomProviderConfigured) {
+            custom_provider_configured = true;
+            break;
+        }
+    }
     Ok(OnboardingResult {
         directory_trust_persisted,
         should_exit: onboarding_screen.should_exit(),
-        custom_provider_configured: onboarding_screen.steps.iter().any(|step| {
-            matches!(step, Step::Auth(widget) if matches!(
-                &*widget.sign_in_state.read().unwrap(),
-                SignInState::CustomProviderConfigured
-            ))
-        }),
+        custom_provider_configured,
     })
 }
 
