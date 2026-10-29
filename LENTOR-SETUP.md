@@ -1,14 +1,20 @@
-# Clodex setup
+# Lentor setup
 
 From this checked-out repository, install the Rust toolchain and `just` following
 the [source build instructions](docs/install.md). Python is also required by the
-root justfile (`python` on Windows, `python3` elsewhere). Then run:
+root justfile (`python` on Windows, `python3` elsewhere). Build the existing engine:
 
 ```sh
-just codex
+cd codex-rs
+cargo build -p codex-cli --bin codex
+cd ..
 ```
 
-This runs Codex from the source checkout. No separate gateway or server process
+Run `.\lentor.ps1` on Windows or `sh ./lentor` on macOS/Linux. The launcher uses
+`~/.lentor` (or `LENTOR_HOME`) for the user profile. See the [README](README.md)
+for the remaining namespace migration limits.
+
+This runs Lentor from the source checkout. No separate gateway or server process
 needs to be installed. The custom provider uses the Responses API format; choose
 an endpoint that supports it.
 

@@ -1,0 +1,6 @@
+---
+source: cli/src/branding_tests.rs
+assertion_line: 17
+expression: "result.to_string().replace(env!(\"CARGO_PKG_VERSION\"), \"<VERSION>\")"
+---
+lentor <VERSION>

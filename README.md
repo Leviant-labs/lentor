@@ -1,81 +1,84 @@
-<p align="center"><strong>Codex CLI</strong> is a coding agent from OpenAI that runs locally on your computer.
-<p align="center">
-  <img src="https://github.com/openai/codex/blob/main/.github/codex-cli-splash.png" alt="Codex CLI splash" width="80%" />
-</p>
-</br>
-If you want Codex in your code editor (VS Code, Cursor, Windsurf), <a href="https://developers.openai.com/codex/ide">install in your IDE.</a>
-</br>If you want the desktop app experience, run <code>codex app</code> or visit <a href="https://chatgpt.com/codex?app-landing-page=true">the Codex App page</a>.
-</br>If you are looking for the <em>cloud-based agent</em> from OpenAI, <strong>Codex Web</strong>, go to <a href="https://chatgpt.com/codex">chatgpt.com/codex</a>.</p>
+# Lentor
 
----
+**By Leviant Labs. Less effort for you.**
 
-## Quickstart
+Lentor is a local coding agent and an independent fork of
+[OpenAI Codex](https://github.com/openai/codex). It is not affiliated with or
+endorsed by OpenAI. The upstream [LICENSE](LICENSE) and [NOTICE](NOTICE) remain
+intact; Lentor uses its own name and artwork.
 
-### Installing and running Codex CLI
+The name comes from Latin *lentor*, the quality of being pliant, unhurried,
+and at ease. It pairs with Leviant, from *levis*: light. Lazy on purpose means
+less effort for the user. Ai, the sloth mascot, carries the joke.
 
-Run the following on Mac or Linux to install Codex CLI:
+## Prerelease workflow
 
-```shell
-curl -fsSL https://chatgpt.com/codex/install.sh | sh
+- `main` holds the current Lentor prerelease checkpoint.
+- `dev` is the working branch for CLI and backend development. Both branches
+  start at the same checkpoint; promote reviewed changes from `dev` to `main`.
+- In the independent Lentor checkout, `origin` is the Leviant Labs GitHub fork
+  and `upstream` is OpenAI's repository. Upstream updates are integrated
+  deliberately; another local checkout is not required.
+
+This is not a stable release. Full namespace isolation, provider-setup failure
+recovery, and the existing Bazel multiline-string build findings remain open.
+The branding checkpoint passed 126 focused Rust checks and launcher checks;
+broader Windows integration and locale-dependent checks are not all green.
+
+## Run locally
+
+This is a source checkout, not a published Lentor package. Build the existing
+engine from `codex-rs`:
+
+```sh
+cargo build -p codex-cli --bin codex
 ```
 
-Run the following on Windows to install Codex CLI:
-
-```shell
-powershell -ExecutionPolicy ByPass -c "irm https://chatgpt.com/codex/install.ps1 | iex"
-```
-
-The standalone installers download from `https://releases.openai.com/codex` by default and fall back to GitHub Releases if a metadata or asset download is unavailable. To force GitHub Releases, set `CODEX_INSTALLER_USE_RELEASES_OPENAI_COM` to `false` (`0` and `no` are also accepted):
-
-```shell
-curl -fsSL https://chatgpt.com/codex/install.sh | CODEX_INSTALLER_USE_RELEASES_OPENAI_COM=false sh
-```
+Then run the launcher from the repository root:
 
 ```powershell
-$env:CODEX_INSTALLER_USE_RELEASES_OPENAI_COM='false'; irm https://chatgpt.com/codex/install.ps1 | iex
+.\lentor.ps1
 ```
 
-Codex CLI can also be installed via the following package managers:
-
-```shell
-# Install using npm
-npm install -g @openai/codex
+```sh
+sh ./lentor
 ```
 
-```shell
-# Install using Homebrew
-brew install --cask codex
-```
+The launcher uses the already-built engine and does not rebuild on startup.
+Set `LENTOR_BINARY` to an absolute engine path if using a different build output.
+The internal executable and Rust crates retain their upstream names during this
+first branding pass.
 
-Then simply run `codex` to get started.
+The launcher uses `~/.lentor` for its user profile, or the directory specified by
+`LENTOR_HOME`. It overrides an inherited `CODEX_HOME` only for the engine process
+and runs without the shared daemon. Your old user profile is not imported.
 
-<details>
-<summary>You can also go to the <a href="https://github.com/openai/codex/releases/latest">latest GitHub Release</a> and download the appropriate binary for your platform.</summary>
+This is a partial namespace migration: the engine still uses its upstream
+environment variables, project-local `.codex` configuration discovery, credential
+service identifiers, and protocol names. Do not treat this pass as complete
+isolation from project-level Codex configuration. Full path and environment
+renaming needs a separate compatibility pass.
 
-Each GitHub Release contains many executables, but in practice, you likely want one of these:
+Configure an endpoint and API key in the first-run setup, or use `/provider`
+inside a session. Use `/models` to choose an available model and advertised
+reasoning effort. Keys entered in setup are stored in the OS credential store.
 
-- macOS
-  - Apple Silicon/arm64: `codex-aarch64-apple-darwin.tar.gz`
-  - x86_64 (older Mac hardware): `codex-x86_64-apple-darwin.tar.gz`
-- Linux
-  - x86_64: `codex-x86_64-unknown-linux-musl.tar.gz`
-  - arm64: `codex-aarch64-unknown-linux-musl.tar.gz`
+The proprietary upstream desktop frontend is not part of this repository.
 
-Each archive contains a single entry with the platform baked into the name (e.g., `codex-x86_64-unknown-linux-musl`), so you likely want to rename it to `codex` after extracting it.
+## Name checks
 
-</details>
+Checked on 2026-10-29 before publishing this branding pass:
 
-### Using Codex with your ChatGPT plan
+- [crates.io](https://crates.io/crates/lentor): the exact `lentor` crate lookup returned 404.
+- [npm](https://www.npmjs.com/package/lentor): the exact `lentor` package lookup returned 404.
+- [GitHub](https://github.com/search?q=lentor&type=repositories): no exact-name
+  `lentor` repository appeared in the search results; similarly named repositories
+  exist, including `lentoria` and `lentora-icu`. The `Leviant-labs/lentor`
+  repository lookup returned 404.
 
-Run `codex` and select **Sign in with ChatGPT**. We recommend signing into your ChatGPT account to use Codex as part of your Plus, Pro, Business, Edu, or Enterprise plan. [Learn more about what's included in your ChatGPT plan](https://help.openai.com/en/articles/11369540-codex-in-chatgpt).
+These checks do not reserve any name. Check again before a package release.
 
-You can also use Codex with an API key, but this requires [additional setup](https://developers.openai.com/codex/auth#sign-in-with-an-api-key).
+## License
 
-## Docs
-
-- [**Codex Documentation**](https://developers.openai.com/codex)
-- [**Contributing**](./docs/contributing.md)
-- [**Installing & building**](./docs/install.md)
-- [**Open source fund**](./docs/open-source-fund.md)
-
-This repository is licensed under the [Apache-2.0 License](LICENSE).
+Lentor retains the upstream Apache-2.0 license and third-party attribution.
+See [LICENSE](LICENSE) and [NOTICE](NOTICE).

@@ -1,0 +1,22 @@
+#!/bin/sh
+set -eu
+
+repo=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+engine=${LENTOR_BINARY:-"$repo/codex-rs/target/debug/codex"}
+if [ ! -x "$engine" ]; then
+    printf '%s\n' 'Build the local engine with cargo build -p codex-cli --bin codex from codex-rs, or set LENTOR_BINARY to its absolute path.' >&2
+    exit 1
+fi
+lentor_home=${LENTOR_HOME:-"$HOME/.lentor"}
+mkdir -p -- "$lentor_home"
+lentor_home=$(CDPATH= cd -- "$lentor_home" && pwd -P)
+if [ -d "$HOME/.codex" ]; then
+    upstream_home=$(CDPATH= cd -- "$HOME/.codex" && pwd -P)
+    if [ "$lentor_home" = "$upstream_home" ]; then
+        printf '%s\n' 'LENTOR_HOME must be separate from the existing Codex profile.' >&2
+        exit 1
+    fi
+fi
+
+# Keep the existing engine's compatibility variable inside the child process.
+CODEX_HOME=$lentor_home exec "$engine" --no-daemon "$@"
