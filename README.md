@@ -7,9 +7,6 @@ Lentor is a local coding agent and an independent fork of
 endorsed by OpenAI. The upstream [LICENSE](LICENSE) and [NOTICE](NOTICE) remain
 intact; Lentor uses its own name and artwork.
 
-The name comes from Latin *lentor*, the quality of being pliant, unhurried,
-and at ease. It pairs with Leviant, from *levis*: light. Lazy on purpose means
-less effort for the user. Ai, the sloth mascot, carries the joke.
 
 ## Prerelease workflow
 
