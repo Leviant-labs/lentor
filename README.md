@@ -65,18 +65,6 @@ reasoning effort. Keys entered in setup are stored in the OS credential store.
 
 The proprietary upstream desktop frontend is not part of this repository.
 
-## Name checks
-
-Checked on 2026-10-29 before publishing this branding pass:
-
-- [crates.io](https://crates.io/crates/lentor): the exact `lentor` crate lookup returned 404.
-- [npm](https://www.npmjs.com/package/lentor): the exact `lentor` package lookup returned 404.
-- [GitHub](https://github.com/search?q=lentor&type=repositories): no exact-name
-  `lentor` repository appeared in the search results; similarly named repositories
-  exist, including `lentoria` and `lentora-icu`. The `Leviant-labs/lentor`
-  repository lookup returned 404.
-
-These checks do not reserve any name. Check again before a package release.
 
 ## License
 
