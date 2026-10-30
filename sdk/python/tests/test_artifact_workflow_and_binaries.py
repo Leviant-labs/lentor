@@ -175,8 +175,11 @@ def test_root_format_driver_covers_all_formatter_groups(
             ).encode()
         assert cwd == tmp_path
         assert args == git_ls_files_args
-        return b"MODULE.bazel\0README.md\0third_party/v8/libcxx.BUILD.bazel\0"
+        return b"MODULE.bazel\0README.md\0deleted.bzl\0third_party/v8/libcxx.BUILD.bazel\0"
 
+    (tmp_path / "MODULE.bazel").touch()
+    (tmp_path / "third_party/v8").mkdir(parents=True)
+    (tmp_path / "third_party/v8/libcxx.BUILD.bazel").touch()
     monkeypatch.setattr(script, "REPO_ROOT", tmp_path)
     monkeypatch.setattr(script, "os", SimpleNamespace(name=os_name, fsdecode=os.fsdecode))
     monkeypatch.setattr(script.subprocess, "check_output", fake_check_output)

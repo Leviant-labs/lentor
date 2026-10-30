@@ -52,7 +52,7 @@ class FormatterRegressionTests(unittest.TestCase):
     def test_formatter_checks_before_and_after_buildifier(self):
         with mock.patch.object(
             formatter.subprocess, "check_output", return_value=b"x.bzl\0"
-        ):
+        ), mock.patch.object(Path, "lstat"):
             for check in (False, True):
                 group = formatter.buildifier_formatter_group(check=check)
                 self.assertEqual(len(group.commands), 3)
@@ -66,6 +66,27 @@ class FormatterRegressionTests(unittest.TestCase):
                 self.assertEqual(
                     group.commands[2].args[2:4], ("--bazel-newlines", "check")
                 )
+
+    def test_deleted_tracked_bazel_files_are_omitted_from_every_pass(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "present.bzl").write_bytes(b"x = 1\n")
+            with mock.patch.object(formatter, "REPO_ROOT", root), mock.patch.object(
+                formatter.subprocess, "check_output",
+                return_value=b"deleted.bzl\0present.bzl\0",
+            ):
+                for check in (False, True):
+                    group = formatter.buildifier_formatter_group(check=check)
+                    for command in group.commands:
+                        self.assertNotIn("deleted.bzl", command.args)
+                        self.assertIn("present.bzl", command.args)
+
+    def test_bazel_input_path_errors_are_not_suppressed(self):
+        with mock.patch.object(formatter.subprocess, "check_output", return_value=b"x.bzl\0"), mock.patch.object(
+            Path, "lstat", side_effect=PermissionError("denied")
+        ):
+            with self.assertRaises(PermissionError):
+                formatter.buildifier_formatter_group(check=True)
 
     def test_formatter_normalizes_before_buildifier_and_rejects_crlf_output(self):
         with tempfile.TemporaryDirectory() as directory:

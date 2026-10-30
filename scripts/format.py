@@ -100,6 +100,10 @@ def buildifier_formatter_group(*, check: bool) -> FormatterGroup:
             or ".bzl." in name
             or ".sky." in name
         ):
+            try:
+                (REPO_ROOT / path).lstat()
+            except FileNotFoundError:
+                continue
             buildifier_files.append(path.as_posix())
     buildifier_files.sort()
 
