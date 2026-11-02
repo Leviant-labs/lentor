@@ -135,6 +135,11 @@ impl App {
                 };
                 let previous_models = self.model_catalog.clone();
                 let previous_thread_id = self.primary_thread_id;
+                let previous_input = self.current_displayed_thread_id().and_then(|thread_id| {
+                    self.chat_widget
+                        .capture_thread_input_state()
+                        .map(|input| (thread_id, input))
+                });
                 Arc::make_mut(&mut self.model_catalog).models = models.clone();
                 app_server.set_available_models(models.clone());
                 self.start_fresh_session(
@@ -142,6 +147,11 @@ impl App {
                     /*initial_user_message*/ None, /*new_thread_name*/ None,
                 )
                 .await;
+                if let Some((thread_id, input)) = previous_input
+                    && self.current_displayed_thread_id() != Some(thread_id)
+                {
+                    self.agents_overview.input_states.insert(thread_id, input);
+                }
                 if self.primary_thread_id.is_some()
                     && self.primary_thread_id != previous_thread_id
                     && self.chat_widget.config_ref().model_provider_id == configured.provider_id

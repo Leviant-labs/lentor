@@ -501,3 +501,94 @@ async fn changed_or_uncertain_configuration_keeps_original_thread_blocked() -> R
     .await;
     finish_provider_transition_test(app, server, outcome).await
 }
+
+#[tokio::test]
+async fn successful_transition_opens_model_picker_snapshot() -> Result<()> {
+    let (mut app, mut events, _) = make_test_app_with_channels().await;
+    disable_fixture_plugins(&mut app)?;
+    let mut server = start_config_write_test_app_server(&app).await?;
+    let outcome = std::panic::AssertUnwindSafe(async {
+        let mut tui = crate::tui::test_support::make_test_tui()?;
+        let started = server.start_thread(&app.config).await?;
+        app.replace_chat_widget_with_app_server_thread(
+            &mut tui,
+            started,
+            super::super::session_lifecycle::ThreadAttachPresentation::Fresh,
+            /*initial_user_message*/ None,
+        )
+        .await?;
+        let old_thread_id = app.current_displayed_thread_id().expect("attached thread");
+        assert!(
+            !app.agents_overview
+                .blank_sessions
+                .contains_key(&old_thread_id)
+        );
+        app.chat_widget
+            .set_queue_autosend_suppressed(/*suppressed*/ true);
+        for text in ["first queued", "second queued"] {
+            app.chat_widget.queue_user_message_with_options(
+                text.into(),
+                crate::bottom_pane::QueuedInputAction::Plain,
+                Vec::new(),
+            );
+        }
+        app.chat_widget
+            .restore_user_message_to_composer("old draft".into());
+        let old_input = app
+            .chat_widget
+            .capture_thread_input_state()
+            .expect("old input");
+        while events.try_recv().is_ok() {}
+        let provider_id = app.chat_widget.config_ref().model_provider_id.clone();
+        app.provider_transition_blocked = true;
+        app.chat_widget.block_provider_transition();
+        app.finish_model_provider_setup(
+            &mut tui,
+            &mut server,
+            ProviderSetupResult {
+                baseline: None,
+                result: Ok(codex_app_server_protocol::ModelProviderConfigureResponse {
+                    provider_id,
+                    base_url: "https://example.test/v1".to_string(),
+                    model: None,
+                }),
+            },
+        )
+        .await;
+        assert!(!app.provider_transition_blocked);
+        assert_app_snapshot!(
+            "provider_transition_success",
+            render_bottom_popup(&app.chat_widget, /*width*/ 80)
+        );
+        assert_ne!(app.current_displayed_thread_id(), Some(old_thread_id));
+        assert_eq!(
+            app.agents_overview.input_states.get(&old_thread_id),
+            Some(&old_input)
+        );
+        assert!(app.chat_widget.queued_user_message_texts().is_empty());
+        assert_eq!(app.chat_widget.composer_text_with_pending(), "");
+        assert!(
+            !std::iter::from_fn(|| events.try_recv().ok())
+                .any(|event| matches!(event, AppEvent::CodexOp(Op::UserTurn { .. })))
+        );
+        app.chat_widget.restore_thread_input_state(
+            Some(old_input.clone()),
+            crate::chatwidget::ThreadInputStateRestoreMode {
+                preserve_in_flight_turn: false,
+            },
+        );
+        assert_eq!(
+            app.chat_widget.queued_user_message_texts(),
+            vec!["first queued", "second queued"]
+        );
+        assert_eq!(app.chat_widget.composer_text_with_pending(), "old draft");
+        assert_eq!(
+            app.chat_widget.capture_thread_input_state(),
+            Some(old_input)
+        );
+        Ok::<(), color_eyre::Report>(())
+    })
+    .catch_unwind()
+    .await;
+    finish_provider_transition_test(app, server, outcome).await
+}
