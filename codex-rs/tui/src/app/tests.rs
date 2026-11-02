@@ -254,6 +254,9 @@ macro_rules! assert_app_snapshot {
     };
 }
 
+#[path = "tests/provider_transition_tests.rs"]
+mod provider_transition_tests;
+
 fn test_absolute_path(path: &str) -> AbsolutePathBuf {
     AbsolutePathBuf::try_from(PathBuf::from(path)).expect("absolute test path")
 }
@@ -6485,6 +6488,7 @@ async fn make_test_app() -> Box<App> {
         pending_server_version_notice: None,
         pending_open_resume_picker: false,
         provider_transition_blocked: false,
+        provider_setup_state: Default::default(),
         pending_managed_worktree_creation: false,
         pending_working_directory_change: None,
         pending_start_managed_worktree: None,
@@ -6612,6 +6616,7 @@ pub(super) async fn make_test_app_with_channels() -> (
             pending_server_version_notice: None,
             pending_open_resume_picker: false,
             provider_transition_blocked: false,
+            provider_setup_state: Default::default(),
             pending_managed_worktree_creation: false,
             pending_working_directory_change: None,
             pending_start_managed_worktree: None,
