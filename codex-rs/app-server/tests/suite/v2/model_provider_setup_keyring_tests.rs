@@ -156,7 +156,7 @@ async fn configure_keyring_lifecycle() -> Result<()> {
             ])
             .env(CHILD, "1")
             .env_remove("OPENAI_API_KEY")
-            .env_remove("CODEX_API_KEY")
+            .env_remove("LENTOR_API_KEY")
             .output()
             .await?;
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -328,6 +328,10 @@ remote_compaction = "unsupported"
     .expect_err("requirement rejects write");
     assert!(!error.message.contains("synthetic-provider-key"));
     assert_eq!(
+        error.data.as_ref().unwrap()["providerConfigurationOutcome"],
+        "unknown"
+    );
+    assert_eq!(
         std::fs::read_to_string(home.path().join("config.toml"))?,
         "model = 'previous-model'\n"
     );
@@ -344,7 +348,7 @@ remote_compaction = "unsupported"
                 .filter(|((service, _), entry)| service == "clodex-api-providers"
                     && entry.get_password().is_ok())
                 .count(),
-            2
+            3
         );
     }
     client.shutdown().await?;
@@ -360,6 +364,10 @@ remote_compaction = "unsupported"
     .await?
     .expect_err("override is reported");
     assert!(error.message.contains("saved but are not effective"));
+    assert_eq!(
+        error.data.as_ref().unwrap()["providerConfigurationOutcome"],
+        "saved"
+    );
     assert!(!error.message.contains("synthetic-provider-key"));
     let saved = std::fs::read_to_string(home.path().join("config.toml"))?;
     assert!(!saved.contains("synthetic-provider-key"));

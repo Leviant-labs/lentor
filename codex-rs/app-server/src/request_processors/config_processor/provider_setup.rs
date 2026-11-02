@@ -7,12 +7,10 @@ use codex_app_server_protocol::ModelProviderConfigureParams;
 use codex_app_server_protocol::ModelProviderConfigureResponse;
 use codex_app_server_protocol::WriteStatus;
 use codex_features::Feature;
-use codex_model_provider::delete_provider_api_key;
 use codex_model_provider::store_provider_api_key;
 use codex_model_provider_info::built_in_model_providers;
 use serde_json::json;
 
-use crate::error_code::internal_error;
 use crate::error_code::invalid_request;
 
 impl ConfigRequestProcessor {
@@ -34,20 +32,31 @@ impl ConfigRequestProcessor {
                 .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_'))
             || built_in_model_providers(/*openai_base_url*/ None).contains_key(&provider_id)
         {
-            return Err(invalid_request("choose a non-reserved provider identifier"));
+            return Err(with_outcome(
+                invalid_request("choose a non-reserved provider identifier"),
+                "unchanged",
+            ));
         }
         if name.trim().is_empty() || name.len() > 128 {
-            return Err(invalid_request("provider name must contain 1 to 128 bytes"));
+            return Err(with_outcome(
+                invalid_request("provider name must contain 1 to 128 bytes"),
+                "unchanged",
+            ));
         }
         let base_url = base_url.trim().trim_end_matches('/').to_string();
         let model = model.filter(|value| !value.trim().is_empty());
         if model.as_ref().is_some_and(|value| value.len() > 512) {
-            return Err(invalid_request("model identifier is too long"));
+            return Err(with_outcome(
+                invalid_request("model identifier is too long"),
+                "unchanged",
+            ));
         }
         // Resolve managed configuration before creating a new credential.
-        self.load_latest_config(/*fallback_cwd*/ None).await?;
+        self.load_latest_config(/*fallback_cwd*/ None)
+            .await
+            .map_err(|error| with_outcome(error, "unchanged"))?;
         let reference = store_provider_api_key(&provider_id, &base_url, &api_key)
-            .map_err(|error| invalid_request(error.to_string()))?;
+            .map_err(|error| with_outcome(invalid_request(error.to_string()), "unchanged"))?;
         // Edit only setup-owned fields in the user layer. Replacing the provider
         // table discards custom settings; copying effective config could persist
         // managed secrets into the user file.
@@ -107,24 +116,19 @@ impl ConfigRequestProcessor {
                 reload_user_config: false,
             })
             .await;
-        let write = match write {
-            Ok(write) => write,
-            Err(error) => {
-                if delete_provider_api_key(&reference).is_err() {
-                    return Err(internal_error(
-                        "provider configuration failed and its new credential could not be removed",
-                    ));
-                }
-                return Err(error);
-            }
-        };
+        // A failed batch write can occur after persistence. Keep the credential
+        // until the persisted reference can be proven absent.
+        let write = write.map_err(|error| with_outcome(error, "unknown"))?;
         self.handle_config_mutation().await;
         self.model_catalog.invalidate().await;
         // A successful write is durable even when a higher layer overrides it. Keep
         // its credential: deleting it would leave the saved reference dangling.
         // Previous references also remain available to existing and resumed threads;
         // safe reclamation requires tracking references across processes and sessions.
-        let effective = self.load_latest_config(/*fallback_cwd*/ None).await?;
+        let effective = self
+            .load_latest_config(/*fallback_cwd*/ None)
+            .await
+            .map_err(|error| with_outcome(error, "saved"))?;
         if write.status == WriteStatus::OkOverridden
             || effective.model_provider_id != provider_id
             || effective.model_provider.base_url.as_deref() != Some(base_url.as_str())
@@ -132,8 +136,11 @@ impl ConfigRequestProcessor {
             || effective.model != model
             || !effective.features.enabled(Feature::ApiKeyModelDiscovery)
         {
-            return Err(invalid_request(
-                "provider settings were saved but are not effective; check managed configuration or command-line overrides before retrying",
+            return Err(with_outcome(
+                invalid_request(
+                    "provider settings were saved but are not effective; check managed configuration or command-line overrides before retrying",
+                ),
+                "saved",
             ));
         }
         Ok(ModelProviderConfigureResponse {
@@ -142,4 +149,9 @@ impl ConfigRequestProcessor {
             model,
         })
     }
+}
+
+fn with_outcome(mut error: JSONRPCErrorError, outcome: &str) -> JSONRPCErrorError {
+    error.data = Some(json!({"providerConfigurationOutcome": outcome, "cause": error.data}));
+    error
 }

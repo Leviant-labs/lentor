@@ -42,6 +42,10 @@ async fn configure_rejects_invalid_provider_before_writing_config() -> Result<()
             .read_stream_until_error_message(RequestId::Integer(id))
             .await?;
         assert_eq!(error.error.code, -32600);
+        assert_eq!(
+            error.error.data.as_ref().unwrap()["providerConfigurationOutcome"],
+            "unchanged"
+        );
         assert!(!error.error.message.contains("synthetic-secret"));
     }
     assert_eq!(
@@ -255,7 +259,7 @@ async fn endpoint_model_list_rejects_cursors_after_refresh_failure_and_provider_
                 Some("synthetic-replacement-key"),
             ),
             ("OPENAI_API_KEY", None),
-            ("CODEX_API_KEY", None),
+            ("LENTOR_API_KEY", None),
         ])
         .build_initialized()
         .await?;
