@@ -665,6 +665,44 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn messages_model_discovery_uses_provider_auth_and_header_overrides() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/v1/models"))
+            .and(header("x-api-key", "override-key"))
+            .and(header("anthropic-version", "custom-version"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(ModelsResponse { models: Vec::new() }),
+            )
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let mut provider_info = ModelProviderInfo::create_openai_provider(Some(format!(
+            "{}/v1/messages",
+            server.uri()
+        )));
+        provider_info.wire_api = codex_model_provider_info::WireApi::Messages;
+        provider_info.experimental_bearer_token = Some("unused-key".into());
+        provider_info.http_headers = Some(std::collections::HashMap::from([
+            ("x-api-key".to_string(), "override-key".into()),
+            ("anthropic-version".to_string(), "custom-version".into()),
+        ]));
+        let endpoint = OpenAiModelsEndpoint::new(
+            provider_info,
+            /*auth_manager*/ None,
+            /*gateway_auth_manager*/ None,
+        );
+        endpoint
+            .list_models(
+                "0.0.0",
+                HttpClientFactory::new(OutboundProxyPolicy::ReqwestDefault),
+            )
+            .await
+            .expect("models request should succeed");
+    }
+
+    #[tokio::test]
     async fn model_discovery_enforces_managed_residency_over_provider_headers() {
         let server = MockServer::start().await;
         Mock::given(method("GET"))

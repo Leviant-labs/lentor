@@ -23,7 +23,7 @@ pub(super) struct TestDaemon {
 impl TestDaemon {
     pub(super) fn new() -> Result<Self> {
         let home = tempfile::Builder::new().tempdir_in("/tmp")?;
-        let codex = codex_utils_cargo_bin::cargo_bin("codex")?;
+        let codex = codex_utils_cargo_bin::cargo_bin("lentor")?;
         let codex_source = std::fs::canonicalize(&codex)?;
         let target = if cfg!(target_os = "macos") {
             format!("{}-apple-darwin", std::env::consts::ARCH)
@@ -35,7 +35,7 @@ impl TestDaemon {
         let managed = standalone
             .join("releases")
             .join(&release_name)
-            .join("bin/codex");
+            .join("bin/lentor");
         std::fs::create_dir_all(managed.parent().context("managed bin parent")?)?;
         // Preserve the installed path without invalidating the shared CLI's Rosetta cache.
         #[cfg(all(target_os = "macos", target_arch = "x86_64"))]
@@ -44,7 +44,7 @@ impl TestDaemon {
             // Translate the fixture before timed daemon capability and readiness checks.
             ensure!(
                 Command::new(&managed)
-                    .env("CODEX_HOME", home.path())
+                    .env("LENTOR_HOME", home.path())
                     .arg("--version")
                     .output()?
                     .status
@@ -74,7 +74,7 @@ impl TestDaemon {
 
     pub(super) fn command(&self) -> Command {
         let mut command = Command::new(&self.codex);
-        command.env("CODEX_HOME", self.home.path());
+        command.env("LENTOR_HOME", self.home.path());
         command
     }
 

@@ -8,7 +8,7 @@ load("//bazel/rules:runtime_package.bzl", "release_binary")
 
 codex_rust_crate(
     name = "cli",
-    binaries_with_build_commit = ["codex"],
+    binaries_with_build_commit = ["lentor"],
     crate_name = "codex_cli",
     extra_binaries = [
         "//codex-rs/bwrap:bwrap",
@@ -29,8 +29,8 @@ rust_test(
     args = ["--test-threads=1"],
     crate_name = "app_server_daemon_package",
     crate_root = "tests/app_server_daemon/package.rs",
-    data = [":codex"],
-    env = {"CARGO_BIN_EXE_codex": "$(rlocationpath :codex)"},
+    data = [":lentor"],
+    env = {"CARGO_BIN_EXE_lentor": "$(rlocationpath :lentor)"},
     rustc_env = {"BAZEL_PACKAGE": "codex-rs/cli"},
     rustc_flags = MACOS_WEBRTC_RUSTC_LINK_FLAGS,
     tags = ["exclusive"],
@@ -47,14 +47,14 @@ rust_test(
 )
 
 release_binary(
-    binary = ":codex",
+    binary = ":lentor",
 )
 
 multiplatform_binaries(
-    name = "codex",
+    name = "lentor",
 )
 
 codex_e2e_benchmark(
     name = "codex-help",
-    binaries = [":codex"],
+    binaries = [":lentor"],
 )

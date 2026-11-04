@@ -159,7 +159,7 @@ pub struct TestAppServer {
     auto_env: Option<TestEnv>,
     json_logs: JsonLogCapture,
     // Fields drop in declaration order. Tear down the delayed child before
-    // removing an owned CODEX_HOME that may still be its cwd on Windows.
+    // removing an owned LENTOR_HOME that may still be its cwd on Windows.
     _delayed_exec_server: Option<(LocalWebsocketExecServer, WebsocketDelayInterposer)>,
     _attribution_settings_server: Option<MockServer>,
     _owned_install_dir: Option<TempDir>,
@@ -168,14 +168,14 @@ pub struct TestAppServer {
 
 pub const DEFAULT_CLIENT_NAME: &str = "codex-app-server-tests";
 pub const DISABLE_PLUGIN_STARTUP_TASKS_ARG: &str = "--disable-plugin-startup-tasks-for-tests";
-const DISABLE_MANAGED_CONFIG_ENV_VAR: &str = "CODEX_APP_SERVER_DISABLE_MANAGED_CONFIG";
+const DISABLE_MANAGED_CONFIG_ENV_VAR: &str = "LENTOR_APP_SERVER_DISABLE_MANAGED_CONFIG";
 #[cfg(windows)]
 const DEFAULT_REQUEST_TIMEOUT: Duration = Duration::from_secs(25);
 #[cfg(not(windows))]
 const DEFAULT_REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 
 impl TestAppServer {
-    /// Starts building a server with a temporary CODEX_HOME and the standard
+    /// Starts building a server with a temporary LENTOR_HOME and the standard
     /// automatic test environment.
     pub fn builder() -> TestAppServerBuilder {
         TestAppServerBuilder {
@@ -265,11 +265,11 @@ impl TestAppServer {
         cmd.stdout(Stdio::piped());
         cmd.stderr(Stdio::piped());
         cmd.current_dir(codex_home);
-        cmd.env("CODEX_HOME", codex_home);
+        cmd.env("LENTOR_HOME", codex_home);
         cmd.env("RUST_LOG", "warn");
         // Keep integration tests isolated from host managed configuration.
         cmd.env(
-            "CODEX_APP_SERVER_MANAGED_CONFIG_PATH",
+            "LENTOR_APP_SERVER_MANAGED_CONFIG_PATH",
             codex_home.join("managed_config.toml"),
         );
         cmd.env_remove(CODEX_INTERNAL_ORIGINATOR_OVERRIDE_ENV_VAR);
@@ -1882,7 +1882,7 @@ impl TestAppServerBuilder {
         self
     }
 
-    /// Uses this existing CODEX_HOME instead of a temporary one.
+    /// Uses this existing LENTOR_HOME instead of a temporary one.
     pub fn with_codex_home(mut self, codex_home: &Path) -> Self {
         self.codex_home = Some(codex_home.to_path_buf());
         self
@@ -1966,7 +1966,7 @@ impl TestAppServerBuilder {
         Ok(server)
     }
 
-    /// Builds a server with a temporary CODEX_HOME and automatic environment
+    /// Builds a server with a temporary LENTOR_HOME and automatic environment
     /// by default.
     pub async fn build(self) -> anyhow::Result<TestAppServer> {
         let Self {

@@ -37,6 +37,9 @@ use wiremock::matchers::path;
 
 type Entries = Arc<Mutex<HashMap<(String, String), Arc<MockCredential>>>>;
 
+#[path = "translated_provider_lifecycle_tests.rs"]
+mod translated_provider_lifecycle_tests;
+
 struct TestKeyring(Entries);
 struct TestCredential(Arc<MockCredential>);
 
@@ -99,6 +102,7 @@ async fn start(home: &TempDir, managed: &str) -> Result<InProcessClientHandle> {
         .loader_overrides(overrides.clone())
         .build()
         .await?;
+    let state_db = codex_rollout::state_db::try_init(&config).await?;
     Ok(in_process::start(InProcessStartArgs {
         arg0_paths: Arg0DispatchPaths::default(),
         config: Arc::new(config),
@@ -109,7 +113,7 @@ async fn start(home: &TempDir, managed: &str) -> Result<InProcessClientHandle> {
         thread_config_loader: Arc::new(NoopThreadConfigLoader),
         feedback: CodexFeedback::new(),
         log_db: None,
-        state_db: None,
+        state_db: Some(state_db),
         environment_manager: Arc::new(EnvironmentManager::default_for_tests()),
         config_warnings: Vec::new(),
         embedded_network_policy: Default::default(),
@@ -156,7 +160,7 @@ async fn configure_keyring_lifecycle() -> Result<()> {
             ])
             .env(CHILD, "1")
             .env_remove("OPENAI_API_KEY")
-            .env_remove("CODEX_API_KEY")
+            .env_remove("LENTOR_API_KEY")
             .output()
             .await?;
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -251,7 +255,7 @@ remote_compaction = "unsupported"
     let reference = config["model_providers"]["custom"]["keyring_key"]
         .as_str()
         .unwrap();
-    let stored = entries.lock().unwrap()[&(String::from("clodex-api-providers"), reference.into())]
+    let stored = entries.lock().unwrap()[&(String::from("lentor-api-providers"), reference.into())]
         .get_password()?;
     assert_eq!(
         serde_json::from_str::<Value>(&stored)?,
@@ -296,7 +300,7 @@ remote_compaction = "unsupported"
     );
     assert_ne!(replacement, reference);
     assert!(
-        entries.lock().unwrap()[&(String::from("clodex-api-providers"), reference.into())]
+        entries.lock().unwrap()[&(String::from("lentor-api-providers"), reference.into())]
             .get_password()
             .is_ok()
     );
@@ -316,7 +320,7 @@ remote_compaction = "unsupported"
         .lock()
         .unwrap()
         .keys()
-        .filter(|(service, _)| service == "clodex-api-providers")
+        .filter(|(service, _)| service == "lentor-api-providers")
         .count();
     let error = request(
         &client,
@@ -328,6 +332,10 @@ remote_compaction = "unsupported"
     .expect_err("requirement rejects write");
     assert!(!error.message.contains("synthetic-provider-key"));
     assert_eq!(
+        error.data.as_ref().unwrap()["providerConfigurationOutcome"],
+        "unknown"
+    );
+    assert_eq!(
         std::fs::read_to_string(home.path().join("config.toml"))?,
         "model = 'previous-model'\n"
     );
@@ -335,16 +343,16 @@ remote_compaction = "unsupported"
         let map = entries.lock().unwrap();
         assert_eq!(
             map.keys()
-                .filter(|(service, _)| service == "clodex-api-providers")
+                .filter(|(service, _)| service == "lentor-api-providers")
                 .count(),
             before + 1
         );
         assert_eq!(
             map.iter()
-                .filter(|((service, _), entry)| service == "clodex-api-providers"
+                .filter(|((service, _), entry)| service == "lentor-api-providers"
                     && entry.get_password().is_ok())
                 .count(),
-            2
+            3
         );
     }
     client.shutdown().await?;
@@ -360,6 +368,10 @@ remote_compaction = "unsupported"
     .await?
     .expect_err("override is reported");
     assert!(error.message.contains("saved but are not effective"));
+    assert_eq!(
+        error.data.as_ref().unwrap()["providerConfigurationOutcome"],
+        "saved"
+    );
     assert!(!error.message.contains("synthetic-provider-key"));
     let saved = std::fs::read_to_string(home.path().join("config.toml"))?;
     assert!(!saved.contains("synthetic-provider-key"));
@@ -368,10 +380,50 @@ remote_compaction = "unsupported"
         .as_str()
         .unwrap();
     assert!(
-        entries.lock().unwrap()[&(String::from("clodex-api-providers"), reference.into())]
+        entries.lock().unwrap()[&(String::from("lentor-api-providers"), reference.into())]
             .get_password()
             .is_ok()
     );
+    client.shutdown().await?;
+
+    let messages_server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/v1/models"))
+        .and(header("x-api-key", "synthetic-provider-key"))
+        .respond_with(
+            ResponseTemplate::new(200).set_body_json(json!({"data":[{"id":"vendor/exact"}]})),
+        )
+        .expect(1..)
+        .mount(&messages_server)
+        .await;
+    let messages_base = format!("{}/v1", messages_server.uri());
+    let home = TempDir::new()?;
+    let client = start(&home, "").await?;
+    let mut configure = params(&format!("{messages_base}/messages"));
+    configure["wireApi"] = json!("messages");
+    let result = request(&client, /*id*/ 7, "modelProvider/configure", configure)
+        .await?
+        .expect("messages configuration succeeds");
+    assert_eq!(result["baseUrl"], messages_base);
+    let saved: toml::Value =
+        toml::from_str(&std::fs::read_to_string(home.path().join("config.toml"))?)?;
+    let provider = &saved["model_providers"]["custom"];
+    assert_eq!(provider["base_url"].as_str(), Some(messages_base.as_str()));
+    assert_eq!(
+        provider["model_catalog_url"].as_str(),
+        Some(format!("{messages_base}/models").as_str())
+    );
+    let reference = provider["keyring_key"].as_str().unwrap();
+    let stored = entries.lock().unwrap()[&(String::from("lentor-api-providers"), reference.into())]
+        .get_password()?;
+    assert_eq!(
+        serde_json::from_str::<Value>(&stored)?["endpoint"],
+        messages_base
+    );
+    let models = request(&client, /*id*/ 8, "model/list", json!({}))
+        .await?
+        .expect("messages models list succeeds");
+    assert_eq!(models["data"][0]["id"], "vendor/exact");
     client.shutdown().await?;
     Ok(())
 }

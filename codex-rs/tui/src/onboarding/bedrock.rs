@@ -372,9 +372,9 @@ impl BedrockState {
         let mut footer = Vec::new();
         match &self.view {
             BedrockView::GovCloudWarning(_) => {
-                lines = vec!["Using Codex with AWS GovCloud".bold().into(), "".into()];
+                lines = vec!["Using Lentor with AWS GovCloud".bold().into(), "".into()];
                 lines.push(Line::from(vec![
-                    "You are using Codex with AWS GovCloud. Please ensure you or your administrator have read the ".into(),
+                    "You are using Lentor with AWS GovCloud. Please ensure you or your administrator have read the ".into(),
                     "application configuration and security guidance"
                         .cyan()
                         .underlined(),
@@ -476,7 +476,7 @@ impl BedrockState {
             }
             BedrockView::EnvironmentInstructions => {
                 lines.push(
-                    "  Configure AWS credentials in your environment, then restart Codex.".into(),
+                    "  Configure AWS credentials in your environment, then restart Lentor.".into(),
                 );
                 lines.push("".into());
                 lines.push(Line::from(vec![

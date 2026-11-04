@@ -516,7 +516,7 @@ factory that remote registration mode should use; the CLI builds the auth
 provider from Codex auth state before starting remote mode.
 
 `--proxy-private-ips-via-upstream` (or
-`CODEX_EXEC_SERVER_PROXY_PRIVATE_IPS_VIA_UPSTREAM=true`) allows permitted private IP
+`LENTOR_EXEC_SERVER_PROXY_PRIVATE_IPS_VIA_UPSTREAM=true`) allows permitted private IP
 destinations to use an inherited upstream proxy. If no valid proxy configuration
 applies to the request protocol, routing falls back to a direct connection. This
 includes unset, malformed, or unsupported proxy settings. Setting

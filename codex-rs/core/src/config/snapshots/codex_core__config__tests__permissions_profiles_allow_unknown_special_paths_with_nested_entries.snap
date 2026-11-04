@@ -1,0 +1,8 @@
+---
+source: core/src/config/config_tests.rs
+assertion_line: 4282
+expression: config.startup_warnings
+---
+[
+    "Configured filesystem path `:future_special_path` with nested entry `docs` is not recognized by this version of Lentor and will be ignored. Upgrade Lentor if this path is required.",
+]

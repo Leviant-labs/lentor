@@ -98,6 +98,7 @@ members = [
     "realtime-webrtc",
     "voice-host",
     "protocol",
+    "provider-codecs",
     "protocol/tests/support",
     "prompts",
     "rollout",
@@ -183,6 +184,7 @@ codex-agent-identity = { path = "agent-identity" }
 codex-agent-roles = { path = "agent-roles" }
 codex-ansi-escape = { path = "ansi-escape" }
 codex-api = { path = "codex-api" }
+codex-provider-codecs = { path = "provider-codecs" }
 codex-attachment-store = { path = "attachment-store" }
 codex-aws-auth = { path = "aws-auth" }
 codex-app-server = { path = "app-server" }

@@ -186,7 +186,7 @@ stream_max_retries = 0
         .env("CODEX_HOME", codex_home.path())
         .env("CODEX_API_KEY", REGISTRY_TOKEN)
         .env(
-            "CODEX_APP_SERVER_MANAGED_CONFIG_PATH",
+            "LENTOR_APP_SERVER_MANAGED_CONFIG_PATH",
             codex_home.path().join("managed_config.toml"),
         )
         .env(CODEX_EXEC_SERVER_NOISE_REGISTRY_URL_ENV_VAR, &registry_url)

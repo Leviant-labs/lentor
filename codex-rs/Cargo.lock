@@ -2982,6 +2982,7 @@ dependencies = [
  "codex-prompts",
  "codex-protocol",
  "codex-protocol-test-support",
+ "codex-provider-codecs",
  "codex-response-debug-context",
  "codex-rmcp-client",
  "codex-rollout",
@@ -3041,6 +3042,7 @@ dependencies = [
  "serde_json",
  "serial_test",
  "sha1 0.10.6",
+ "sha2 0.10.9",
  "shlex",
  "similar",
  "tempfile",
@@ -3891,6 +3893,7 @@ dependencies = [
  "codex-workload-identity",
  "core_test_support",
  "http 1.4.0",
+ "insta",
  "jsonwebtoken",
  "keyring",
  "once_cell",
@@ -4435,6 +4438,22 @@ name = "codex-protocol-test-support"
 version = "0.0.0"
 dependencies = [
  "codex-protocol",
+]
+
+[[package]]
+name = "codex-provider-codecs"
+version = "0.0.0"
+dependencies = [
+ "bytes",
+ "codex-api",
+ "codex-protocol",
+ "pretty_assertions",
+ "respan-gateway-conversation",
+ "respan-gateway-conversation-http",
+ "respan-gateway-http",
+ "respan-gateway-sse",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -13053,6 +13072,87 @@ name = "resolv-conf"
 version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1e061d1b48cb8d38042de4ae0a7a6401009d6143dc80d2e2d6f31f0bdd6470c7"
+
+[[package]]
+name = "respan-gateway-conversation"
+version = "0.1.0"
+source = "git+https://github.com/respanai/respan-gateway?rev=b8575e497c836cbbf0a170db2f7685a5ade753a1#b8575e497c836cbbf0a170db2f7685a5ade753a1"
+dependencies = [
+ "bytes",
+ "respan-gateway-core",
+ "serde_json",
+]
+
+[[package]]
+name = "respan-gateway-conversation-http"
+version = "0.2.0"
+source = "git+https://github.com/respanai/respan-gateway?rev=b8575e497c836cbbf0a170db2f7685a5ade753a1#b8575e497c836cbbf0a170db2f7685a5ade753a1"
+dependencies = [
+ "base64 0.22.1",
+ "percent-encoding",
+ "respan-gateway-conversation",
+ "respan-gateway-core",
+ "respan-gateway-http",
+ "respan-gateway-http-faults",
+ "respan-gateway-sse",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "respan-gateway-core"
+version = "0.1.2"
+source = "git+https://github.com/respanai/respan-gateway?rev=b8575e497c836cbbf0a170db2f7685a5ade753a1#b8575e497c836cbbf0a170db2f7685a5ade753a1"
+dependencies = [
+ "async-trait",
+ "futures",
+ "parking_lot",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "respan-gateway-http"
+version = "0.1.1"
+source = "git+https://github.com/respanai/respan-gateway?rev=b8575e497c836cbbf0a170db2f7685a5ade753a1#b8575e497c836cbbf0a170db2f7685a5ade753a1"
+dependencies = [
+ "bytes",
+ "futures",
+ "http 1.4.0",
+ "http-body 1.0.1",
+ "http-body-util",
+ "parking_lot",
+ "percent-encoding",
+ "respan-gateway-core",
+ "respan-gateway-http-faults",
+ "respan-gateway-sse",
+ "serde",
+ "serde_json",
+ "tokio",
+ "url",
+]
+
+[[package]]
+name = "respan-gateway-http-faults"
+version = "0.1.0"
+source = "git+https://github.com/respanai/respan-gateway?rev=b8575e497c836cbbf0a170db2f7685a5ade753a1#b8575e497c836cbbf0a170db2f7685a5ade753a1"
+dependencies = [
+ "bytes",
+ "http 1.4.0",
+ "httpdate",
+ "respan-gateway-core",
+]
+
+[[package]]
+name = "respan-gateway-sse"
+version = "0.1.0"
+source = "git+https://github.com/respanai/respan-gateway?rev=b8575e497c836cbbf0a170db2f7685a5ade753a1#b8575e497c836cbbf0a170db2f7685a5ade753a1"
+dependencies = [
+ "bytes",
+ "respan-gateway-core",
+ "respan-gateway-http-faults",
+ "serde_json",
+]
 
 [[package]]
 name = "rfc6979"

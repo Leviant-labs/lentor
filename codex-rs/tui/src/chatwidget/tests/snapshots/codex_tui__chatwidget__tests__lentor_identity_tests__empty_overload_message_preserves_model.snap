@@ -1,0 +1,6 @@
+---
+source: tui/src/chatwidget/tests/lentor_identity_tests.rs
+assertion_line: 29
+expression: rendered
+---
+■ The provider is currently experiencing high load.

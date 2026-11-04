@@ -230,7 +230,9 @@ def run_formatter_group(group: FormatterGroup) -> FormatterResult:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--bazel-newlines", choices=("check", "fix"), help=argparse.SUPPRESS)
+    parser.add_argument(
+        "--bazel-newlines", choices=("check", "fix"), help=argparse.SUPPRESS
+    )
     parser.add_argument("paths", nargs="*", help=argparse.SUPPRESS)
     parser.add_argument(
         "--check",

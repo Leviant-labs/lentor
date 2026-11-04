@@ -14,15 +14,16 @@ use std::path::Path;
 mod keybinding_tests;
 
 const ANNOUNCEMENT_TIP_URL: &str =
-    "https://raw.githubusercontent.com/openai/codex/main/announcement_tip.toml";
+    "https://raw.githubusercontent.com/Leviant-labs/lentor/main/announcement_tip.toml";
 
 const IS_MACOS: bool = cfg!(target_os = "macos");
 const IS_WINDOWS: bool = cfg!(target_os = "windows");
 
-const WINDOWS_APP_TOOLTIP: &str = "Use the **desktop app**. Install it from https://chatgpt.com/codex?app-landing-page=true and run `codex app`.";
-const MACOS_APP_TOOLTIP: &str =
-    "Use the **desktop app**. Run `codex app` to open it. It installs automatically if needed.";
-const LINUX_APP_TOOLTIP: &str = "Use the **desktop app**. Install it from https://learn.chatgpt.com/docs/linux/linux-app and run `chatgpt`.";
+const WINDOWS_PLATFORM_TOOLTIP: &str =
+    "Use **/provider** to choose Responses, Chat Completions, or Messages in Lentor.";
+const MACOS_PLATFORM_TOOLTIP: &str =
+    "Use **/model** to select a Lentor model and its advertised reasoning controls.";
+const LINUX_PLATFORM_TOOLTIP: &str = "Use **/resume** to reopen a saved Lentor session.";
 
 const RAW_TOOLTIPS: &str = include_str!("../assets/tooltips.txt");
 
@@ -31,7 +32,7 @@ lazy_static! {
         .lines()
         .map(str::trim)
         .filter(|line| !line.is_empty() && !line.starts_with('#'))
-        .chain(app_tooltip())
+        .chain(platform_tooltip())
         .collect();
     static ref ALL_TOOLTIPS: Vec<&'static str> = {
         let mut tips = Vec::new();
@@ -45,7 +46,7 @@ lazy_static! {
     };
 }
 
-/// Pick a random tooltip to show to the user when starting Codex.
+/// Pick a random tooltip to show to the user when starting Lentor.
 pub(crate) fn get_tooltip(plan: Option<PlanType>, keymap: &TuiKeymap) -> Option<String> {
     let mut rng = rand::rng();
     preferred_tooltip(&mut rng, plan).or_else(|| pick_tooltip(&mut rng, keymap))
@@ -63,7 +64,7 @@ pub(crate) fn preferred_tooltip<R: Rng + ?Sized>(
 
     // Leave small chance for a random tooltip to be shown.
     if rng.random_ratio(/*numerator*/ 8, /*denominator*/ 10) {
-        return app_tooltip().map(str::to_string);
+        return platform_tooltip().map(str::to_string);
     }
 
     None
@@ -95,17 +96,17 @@ impl LinuxDesktopSession {
     }
 }
 
-fn linux_app_tooltip(session: LinuxDesktopSession) -> Option<&'static str> {
-    (session.has_display && !session.is_wsl).then_some(LINUX_APP_TOOLTIP)
+fn linux_platform_tooltip(session: LinuxDesktopSession) -> Option<&'static str> {
+    (session.has_display && !session.is_wsl).then_some(LINUX_PLATFORM_TOOLTIP)
 }
 
-fn app_tooltip() -> Option<&'static str> {
+fn platform_tooltip() -> Option<&'static str> {
     if IS_MACOS {
-        Some(MACOS_APP_TOOLTIP)
+        Some(MACOS_PLATFORM_TOOLTIP)
     } else if IS_WINDOWS {
-        Some(WINDOWS_APP_TOOLTIP)
+        Some(WINDOWS_PLATFORM_TOOLTIP)
     } else {
-        linux_app_tooltip(LinuxDesktopSession::current())
+        linux_platform_tooltip(LinuxDesktopSession::current())
     }
 }
 
@@ -392,12 +393,12 @@ mod tests {
     }
 
     #[test]
-    fn desktop_app_tips_render_at_narrow_width() {
+    fn platform_tips_render_at_narrow_width() {
         let cwd = std::env::current_dir().unwrap();
         for (platform, tip) in [
-            ("macos", MACOS_APP_TOOLTIP),
-            ("windows", WINDOWS_APP_TOOLTIP),
-            ("linux", LINUX_APP_TOOLTIP),
+            ("macos", MACOS_PLATFORM_TOOLTIP),
+            ("windows", WINDOWS_PLATFORM_TOOLTIP),
+            ("linux", LINUX_PLATFORM_TOOLTIP),
         ] {
             let rendered = render_tooltip_lines(tip, /*width*/ 40, &cwd)
                 .iter()
@@ -409,46 +410,31 @@ mod tests {
     }
 
     #[test]
-    fn desktop_app_tooltip_uses_supported_platform_launcher() {
-        let tooltip = TOOLTIPS
-            .iter()
-            .copied()
-            .find(|tip| tip.contains("desktop app"));
-
-        if linux_app_tooltip(LinuxDesktopSession::current()).is_some() {
-            let tooltip = tooltip.expect("Linux should advertise the desktop app");
-            assert_eq!(app_tooltip(), Some(tooltip));
-        } else if IS_MACOS {
-            let tooltip = tooltip.expect("macOS should advertise the desktop app");
-            assert_eq!(app_tooltip(), Some(tooltip));
-        } else if IS_WINDOWS {
-            let tooltip = tooltip.expect("Windows should advertise the desktop app");
-            assert_eq!(app_tooltip(), Some(tooltip));
-        } else {
-            assert_eq!(tooltip, None);
-            assert_eq!(app_tooltip(), None);
-        }
+    fn platform_tip_is_included_in_the_local_pool() {
+        let selected = platform_tooltip();
+        let included = TOOLTIPS.iter().copied().find(|tip| Some(*tip) == selected);
+        assert_eq!(included, selected);
     }
 
     #[test]
-    fn linux_desktop_app_tooltip_requires_graphical_native_session() {
+    fn linux_platform_tooltip_requires_graphical_native_session() {
         assert_eq!(
-            linux_app_tooltip(LinuxDesktopSession {
+            linux_platform_tooltip(LinuxDesktopSession {
                 has_display: true,
                 is_wsl: false,
             }),
-            Some(LINUX_APP_TOOLTIP)
+            Some(LINUX_PLATFORM_TOOLTIP)
         );
 
         assert_eq!(
-            linux_app_tooltip(LinuxDesktopSession {
+            linux_platform_tooltip(LinuxDesktopSession {
                 has_display: false,
                 is_wsl: false,
             }),
             None
         );
         assert_eq!(
-            linux_app_tooltip(LinuxDesktopSession {
+            linux_platform_tooltip(LinuxDesktopSession {
                 has_display: true,
                 is_wsl: true,
             }),
@@ -472,7 +458,7 @@ mod tests {
             }
             assert_eq!(
                 seen,
-                std::collections::BTreeSet::from([None, app_tooltip().map(str::to_string)])
+                std::collections::BTreeSet::from([None, platform_tooltip().map(str::to_string)])
             );
         }
     }

@@ -52,7 +52,7 @@ fn local_stdio_inherits_ca_certificate_variables() -> anyhow::Result<()> {
                 .into_iter()
                 .map(|name| (name, "certs/custom-ca.pem")),
         )
-        .env("CODEX_CA_CERTIFICATE", "")
+        .env("LENTOR_CA_CERTIFICATE", "")
         .env("REQUESTS_CA_BUNDLE", requests_ca_bundle)
         .env("CODEX_MCP_TEST_SERVER_CWD", &server_dir)
         .output()?;
@@ -89,7 +89,7 @@ async fn local_stdio_inherits_ca_certificate_variables_child() -> anyhow::Result
             "REQUESTS_CA_BUNDLE",
             Some(expected.to_string_lossy().into_owned()),
         ),
-        (None, "CODEX_CA_CERTIFICATE", None),
+        (None, "LENTOR_CA_CERTIFICATE", None),
         (
             Some(npm_override.clone()),
             "NPM_CONFIG_CAFILE",

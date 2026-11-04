@@ -14,6 +14,10 @@ impl ChatWidget {
             .dismiss_view_by_id(ALL_MODELS_SELECTION_VIEW_ID);
     }
 
+    pub(crate) fn unblock_provider_transition(&mut self) {
+        self.provider_transition_blocked = false;
+    }
+
     pub(super) fn refresh_account_scoped_models(&mut self) {
         if self.status_account_display == Some(StatusAccountDisplay::ApiKey) {
             for model in &mut Arc::make_mut(&mut self.model_catalog).models {

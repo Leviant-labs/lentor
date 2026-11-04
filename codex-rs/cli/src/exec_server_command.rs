@@ -35,7 +35,7 @@ pub(super) struct ExecServerCommand {
     #[command(subcommand)]
     pub(super) command: Option<ExecServerSubcommand>,
 
-    /// Error out when config.toml contains fields that are not recognized by this version of Codex.
+    /// Error out when config.toml contains fields that are not recognized by this version of Lentor.
     #[arg(
         id = "exec_server_strict_config",
         long = "strict-config",
@@ -54,7 +54,7 @@ pub(super) struct ExecServerCommand {
     /// Loopback stays local. This flag does not require upstream routing.
     #[arg(
         long,
-        env = "CODEX_EXEC_SERVER_PROXY_PRIVATE_IPS_VIA_UPSTREAM",
+        env = "LENTOR_EXEC_SERVER_PROXY_PRIVATE_IPS_VIA_UPSTREAM",
         global = true
     )]
     proxy_private_ips_via_upstream: bool,
@@ -107,7 +107,7 @@ pub(super) struct ExecServerCommand {
     #[arg(long = "name", value_name = "NAME", global = true)]
     pub(super) name: Option<String>,
 
-    /// Use Agent Identity auth from CODEX_ACCESS_TOKEN for remote registration.
+    /// Use Agent Identity auth from LENTOR_ACCESS_TOKEN for remote registration.
     #[arg(
         long = "use-agent-identity-auth",
         requires = "exec_server_remote",
@@ -400,7 +400,7 @@ async fn load_exec_server_remote_auth_provider(
 ) -> anyhow::Result<codex_api::SharedAuthProvider> {
     if use_agent_identity_auth {
         read_codex_access_token_from_env().ok_or_else(|| {
-            anyhow::anyhow!("CODEX_ACCESS_TOKEN is required when --use-agent-identity-auth is set")
+            anyhow::anyhow!("LENTOR_ACCESS_TOKEN is required when --use-agent-identity-auth is set")
         })?;
         let auth = AuthManager::shared_from_config(config, /*enable_codex_api_key_env*/ false)
             .await?
@@ -409,7 +409,7 @@ async fn load_exec_server_remote_auth_provider(
             .ok_or_else(|| anyhow::anyhow!("Agent Identity authentication is unavailable"))?;
         if !matches!(auth, CodexAuth::AgentIdentity(_)) {
             anyhow::bail!(
-                "CODEX_ACCESS_TOKEN did not provide permitted Agent Identity authentication"
+                "LENTOR_ACCESS_TOKEN did not provide permitted Agent Identity authentication"
             );
         }
         return Ok(codex_model_provider::auth_provider_from_auth(&auth));
@@ -417,7 +417,7 @@ async fn load_exec_server_remote_auth_provider(
 
     let (auth_manager, auth) = load_exec_server_remote_auth(
         config,
-        "remote exec-server registration requires ChatGPT authentication or API key authentication; run `codex login` or set CODEX_API_KEY",
+        "remote exec-server registration requires ChatGPT authentication or API key authentication; run `lentor login` or set LENTOR_API_KEY",
     )
     .await?;
 

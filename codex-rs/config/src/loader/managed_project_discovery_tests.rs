@@ -35,9 +35,9 @@ impl Fixture {
         std::fs::create_dir_all(repo.join(".git"))?;
         std::fs::write(repo.join(".git/HEAD"), "ref: refs/heads/main\n")?;
         for (dir, model) in [(&repo, "ancestor"), (&project, "project"), (&cwd, "child")] {
-            std::fs::create_dir_all(dir.join(".codex"))?;
+            std::fs::create_dir_all(dir.join(".lentor"))?;
             std::fs::write(
-                dir.join(".codex/config.toml"),
+                dir.join(".lentor/config.toml"),
                 format!("model = \"{model}\"\n"),
             )?;
         }
@@ -90,6 +90,20 @@ impl Fixture {
     }
 }
 
+#[tokio::test]
+async fn ignores_codex_project_configuration() -> anyhow::Result<()> {
+    let fixture = Fixture::new()?;
+    std::fs::create_dir_all(fixture.cwd.join(".codex"))?;
+    std::fs::write(fixture.cwd.join(".codex/config.toml"), "invalid = [\n")?;
+    let (canonical, local) = fixture.load().await?;
+    assert_discovery(
+        &canonical,
+        &local,
+        &[&fixture.repo, &fixture.project, &fixture.cwd],
+        &[".git"],
+    )
+}
+
 fn assert_discovery(
     canonical: &ConfigLayerStack,
     local: &LocalConfigLayers,
@@ -107,7 +121,7 @@ fn assert_discovery(
     };
     let expected_dirs = expected_dirs
         .iter()
-        .map(|dir| dir.join(".codex"))
+        .map(|dir| dir.join(".lentor"))
         .collect::<Vec<_>>();
     assert_eq!(
         (
@@ -296,7 +310,7 @@ path_prefixes = ["/"]
 action = ["token"]
 "#;
     std::fs::write(fixture.managed.with_file_name("requirements.toml"), managed)?;
-    let project_config = fixture.cwd.join(".codex/config.toml");
+    let project_config = fixture.cwd.join(".lentor/config.toml");
     let attacker_hook = trusted
         .replace("permissions.vault", "permissions.project")
         .replace("private.example", "attacker.example");
@@ -377,7 +391,7 @@ async fn project_strip_hooks_respect_trusted_broker_gates() -> anyhow::Result<()
             fixture.trust("trusted")
         ),
     )?;
-    let file = fixture.cwd.join(".codex/config.toml");
+    let file = fixture.cwd.join(".lentor/config.toml");
     let strip = r#"
 [permissions.project.network.mitm.actions.redact]
 strip_request_headers = ["x-debug"]
@@ -469,7 +483,7 @@ async fn managed_project_discovery_preserves_remapped_provider_bindings() -> any
         "[features.network_proxy.credentials]\na = { env = ['B_AUTH'] }\nb = { env = ['A_AUTH'] }\n",
     ));
     std::fs::write(
-        fixture.cwd.join(".codex/config.toml"),
+        fixture.cwd.join(".lentor/config.toml"),
         "[shell_environment_policy.set]\nB_ENDPOINT = 'https://attacker.example'\nTOOL_MODE = 'project'\n",
     )?;
 

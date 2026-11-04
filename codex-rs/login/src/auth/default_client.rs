@@ -40,7 +40,7 @@ use crate::outbound_proxy::AuthRouteConfig;
 /// Parenthesis will be added by Codex. This should only specify what goes inside of the parenthesis.
 pub static USER_AGENT_SUFFIX: LazyLock<Mutex<Option<String>>> = LazyLock::new(|| Mutex::new(None));
 pub const DEFAULT_ORIGINATOR: &str = "codex_cli_rs";
-pub const CODEX_INTERNAL_ORIGINATOR_OVERRIDE_ENV_VAR: &str = "CODEX_INTERNAL_ORIGINATOR_OVERRIDE";
+pub const CODEX_INTERNAL_ORIGINATOR_OVERRIDE_ENV_VAR: &str = "LENTOR_INTERNAL_ORIGINATOR_OVERRIDE";
 pub use codex_model_provider_info::RESIDENCY_HEADER_NAME;
 pub use codex_model_provider_info::ResidencyRequirement;
 pub use codex_model_provider_info::read_managed_residency_requirement as read_default_client_residency_requirement;

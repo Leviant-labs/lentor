@@ -3188,6 +3188,29 @@ async fn hosted_web_search_fallback_follows_winning_browser_runtime() {
 }
 
 #[tokio::test]
+async fn translated_providers_omit_hosted_search_and_keep_local_tools() {
+    for wire_api in [
+        codex_model_provider_info::WireApi::Chat,
+        codex_model_provider_info::WireApi::Messages,
+    ] {
+        let plan = probe(|turn| {
+            set_features(turn, &[Feature::ShellTool, Feature::UnifiedExec]);
+            let mut info = turn.config.model_provider.clone();
+            info.wire_api = wire_api;
+            turn.provider = create_model_provider(info, turn.auth_manager.clone());
+            update_turn_settings_for_test(turn, |settings| {
+                Arc::make_mut(&mut settings.model_info).supports_search_tool = true;
+                Arc::make_mut(&mut settings.model_info).shell_type =
+                    ConfigShellToolType::UnifiedExec;
+            });
+        })
+        .await;
+        plan.assert_visible_lacks(&["web_search", "tool_search"]);
+        plan.assert_visible_contains(&["exec_command"]);
+    }
+}
+
+#[tokio::test]
 async fn hosted_web_search_and_standalone_image_generation_follow_runtime_gates() {
     let image_generation_tool = Arc::new(TestNamespaceExtensionTool {
         namespace: "image_gen",

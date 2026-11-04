@@ -52,7 +52,7 @@ async fn startup_reports_shared_and_fallback_recovery() -> Result<()> {
             .await?;
         let warning: ConfigWarningNotification =
             timeout(read_timeout, server.read_notification("configWarning")).await??;
-        assert_eq!(warning.summary, "Codex rebuilt its local database");
+        assert_eq!(warning.summary, "Lentor rebuilt its local database");
         let details = warning.details.expect("recovery details");
         assert!(details.contains("Some database-only metadata may be unavailable"));
         let mut backups = std::fs::read_dir(sqlite.home().join("db-backups"))?
@@ -196,7 +196,7 @@ async fn state_recovery_restores_saved_threads() -> Result<()> {
     assert_eq!(after.thread.turns, before.thread.turns);
     let warning: ConfigWarningNotification =
         timeout(read_timeout, server.read_notification("configWarning")).await??;
-    assert_eq!(warning.summary, "Codex rebuilt its local database");
+    assert_eq!(warning.summary, "Lentor rebuilt its local database");
     let details = warning.details.expect("recovery details");
     assert!(details.contains("Some database-only metadata may be unavailable"));
     let backups = std::fs::read_dir(sqlite.home().join("db-backups"))?

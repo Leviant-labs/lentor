@@ -12,16 +12,16 @@ python := if os_family() == "windows" { "python" } else { "python3" }
 help:
     just -l
 
-# `codex`
-alias c := codex
-codex *args:
-    cargo run --bin codex -- {args}
+# Run Lentor from source.
+alias c := lentor
+lentor *args:
+    cargo run --bin lentor -- {args}
 
-# `codex exec`
+# `lentor exec`
 exec *args:
-    cargo run --bin codex -- exec {args}
+    cargo run --bin lentor -- exec {args}
 
-# Start `codex exec-server` and run codex-tui.
+# Start `lentor exec-server` and run codex-tui.
 [no-cd]
 [positional-arguments]
 [unix]
@@ -44,7 +44,7 @@ assemble-codex-package *args:
 # Build the CLI and run the app-server test client
 app-server-test-client *args:
     cargo build -p codex-cli
-    cargo run -p codex-app-server-test-client -- --codex-bin ./target/debug/codex {args}
+    cargo run -p codex-app-server-test-client -- --codex-bin ./target/debug/lentor {args}
 
 # Format the justfile, Rust, Bazel/Starlark, Python SDK code, and Python scripts.
 fmt:
@@ -85,11 +85,11 @@ install:
 # there should be no need to add `--all-features`.
 [unix]
 test *args:
-    RUST_MIN_STACK={{ rust_min_stack }} NEXTEST_PROFILE=local cargo nextest run --no-fail-fast "$@"
+    test_home=$(mktemp -d "${TMPDIR:-/tmp}/lentor-tests.XXXXXXXX") && LENTOR_HOME="$test_home" LENTOR_SQLITE_HOME= VercelAPI= RUST_MIN_STACK={{ rust_min_stack }} NEXTEST_PROFILE=local cargo nextest run --no-fail-fast "$@"
 
 [windows]
 test *args:
-    $env:RUST_MIN_STACK = "{{ rust_min_stack }}"; $env:NEXTEST_PROFILE = "local"; cargo nextest run --no-fail-fast @($args | Select-Object -Skip 1)
+    $testHome = Join-Path ([IO.Path]::GetTempPath()) ("lentor-tests-" + [Guid]::NewGuid()); [void][IO.Directory]::CreateDirectory($testHome); $env:LENTOR_HOME = $testHome; $env:LENTOR_SQLITE_HOME = $null; $env:VercelAPI = $null; $env:RUST_MIN_STACK = "{{ rust_min_stack }}"; $env:NEXTEST_PROFILE = "local"; cargo nextest run --no-fail-fast @($args | Select-Object -Skip 1)
 
 # Run from the repository root so scripts that resolve paths from `cwd` see
 # the same layout they use in GitHub Actions.

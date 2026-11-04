@@ -1,0 +1,180 @@
+name: Lentor CI
+on:
+  pull_request:
+    branches: [main, dev]
+  push:
+    branches: [dev]
+permissions:
+  contents: read
+env:
+  VercelAPI: ''
+  UV_PYTHON: '3.12'
+  CARGO_INCREMENTAL: '0'
+  CARGO_BUILD_JOBS: '2'
+  CARGO_PROFILE_DEV_DEBUG: '0'
+  CARGO_PROFILE_TEST_DEBUG: '0'
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: '3.12'
+      - uses: dtolnay/rust-toolchain@d124f86f28ff42855784ff3319f48ac182c248f8 # 1.99.1
+        with:
+          toolchain: 1.99.1
+          components: rustfmt
+      - uses: taiki-e/install-action@4cef1412cce204788f482e778a0b9187f9626a29 # v2.87.21
+        with:
+          tool: just@1.51.0,bazelisk@1.28.1
+      - name: Package unit tests
+        run: python3 -m unittest discover -s scripts -p 'test_lentor_package.py'
+      - name: Formatter regression tests
+        run: python3 -m unittest discover -s scripts -p 'test_format.py'
+      - name: Live harness safety tests (offline)
+        run: python3 -m unittest discover -s scripts -p 'test_lentor_live_smoke.py'
+      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: '0.11.3'
+      - name: Check Python SDK formatter
+        run: |
+          python3 - <<'PY'
+          import sys
+          sys.path.insert(0, 'scripts')
+          import format as repo_format
+          result = repo_format.run_formatter_group(repo_format.python_sdk_formatter_group(check=True))
+          print(result.output, end='')
+          raise SystemExit(result.returncode)
+          PY
+      - name: Rust format
+        working-directory: codex-rs
+        run: cargo fmt -- --config imports_granularity=Item --check
+      - name: Regenerate schemas and check drift
+        run: |
+          just write-config-schema
+          just write-app-server-schema
+          just write-app-server-schema --experimental
+          git diff --exit-code -- codex-rs/core/config.schema.json codex-rs/app-server-protocol sdk/python
+          test -z "$(git status --porcelain --untracked-files=all -- codex-rs/core/config.schema.json codex-rs/app-server-protocol sdk/python)"
+      - name: Verify Bazel lockfile
+        run: bazel mod deps --lockfile_mode=error
+  scoped-tests:
+    name: Scoped Rust tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2022]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: '3.12'
+      - uses: dtolnay/rust-toolchain@d124f86f28ff42855784ff3319f48ac182c248f8 # 1.99.1
+      - uses: taiki-e/install-action@4cef1412cce204788f482e778a0b9187f9626a29 # v2.87.21
+        with:
+          tool: just@1.51.0,cargo-nextest
+      - name: Enable Linux test sandboxes
+        if: runner.os == 'Linux'
+        run: |
+          sudo sysctl -w kernel.unprivileged_userns_clone=1
+          if sudo sysctl -a 2>/dev/null | grep -q '^kernel.apparmor_restrict_unprivileged_userns'; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
+      - name: Resolve pinned V8 inputs for Windows tests
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $env:CODEX_REPO_ROOT = $PWD.Path
+          $env:PYTHONPATH = "$PWD/scripts"
+          $resolvedV8 = python -c 'import json; from codex_package.v8 import resolve_codex_v8_cargo_env; from codex_package.targets import TARGET_SPECS; print(json.dumps(resolve_codex_v8_cargo_env(TARGET_SPECS["x86_64-pc-windows-msvc"])))'
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          ($resolvedV8 | ConvertFrom-Json).PSObject.Properties | ForEach-Object {
+            Add-Content -LiteralPath $env:GITHUB_ENV -Encoding utf8 -Value "$($_.Name)=$($_.Value)"
+          }
+      - name: Test directly changed crates
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          if ! git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then BASE_SHA=$(git rev-parse HEAD^); fi
+          crates=$(python scripts/lentor_ci_crates.py "$BASE_SHA" "$HEAD_SHA")
+          for crate in $crates; do
+            if [[ "$crate" == codex-core ]]; then
+              # Core integration tests launch these first-party binaries.
+              cargo build --locked --manifest-path codex-rs/Cargo.toml \
+                -p codex-cli --bin lentor \
+                -p codex-exec --bin codex-exec \
+                -p codex-code-mode-host --bin codex-code-mode-host \
+                -p codex-rmcp-client --bin test_stdio_server --bin test_streamable_http_server
+              if [[ "$RUNNER_OS" == Linux ]]; then
+                cargo build --locked --manifest-path codex-rs/Cargo.toml -p codex-linux-sandbox --bin codex-linux-sandbox
+              elif [[ "$RUNNER_OS" == Windows ]]; then
+                cargo build --locked --manifest-path codex-rs/Cargo.toml -p codex-windows-sandbox \
+                  --bin codex-command-runner --bin codex-windows-sandbox-setup --bin codex-windows-managed-deny-probe
+              fi
+              break
+            fi
+          done
+          for crate in $crates; do just test -p "$crate"; done
+  windows-package:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: '3.12'
+      - uses: dtolnay/rust-toolchain@d124f86f28ff42855784ff3319f48ac182c248f8 # 1.99.1
+        with:
+          toolchain: 1.99.1
+      - name: Resolve pinned V8 package artifacts
+        shell: pwsh
+        run: |
+          $env:CODEX_REPO_ROOT = $PWD.Path
+          $env:PYTHONPATH = "$PWD/scripts"
+          $resolvedV8 = python -c 'import json; from codex_package.v8 import resolve_codex_v8_cargo_env; from codex_package.targets import TARGET_SPECS; print(json.dumps(resolve_codex_v8_cargo_env(TARGET_SPECS["x86_64-pc-windows-msvc"])))'
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          ($resolvedV8 | ConvertFrom-Json).PSObject.Properties | ForEach-Object {
+            Add-Content -LiteralPath $env:GITHUB_ENV -Encoding utf8 -Value "$($_.Name)=$($_.Value)"
+          }
+      - name: Build explicit package inputs
+        working-directory: codex-rs
+        run: |
+          cargo build -p codex-cli --bin lentor
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          cargo build -p codex-code-mode-host --bin codex-code-mode-host
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          cargo build -p codex-windows-sandbox --bin codex-command-runner --bin codex-windows-sandbox-setup
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          cargo build -p codex-app-server --bin codex-app-server
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Fetch pinned ripgrep and assemble
+        shell: pwsh
+        run: |
+          $env:CODEX_REPO_ROOT = $PWD.Path
+          $env:PYTHONPATH = "$PWD/scripts"
+          python -c "from codex_package.ripgrep import fetch_rg; from codex_package.targets import TARGET_SPECS; import shutil; shutil.copyfile(fetch_rg(TARGET_SPECS['x86_64-pc-windows-msvc']), 'codex-rs/target/debug/rg.exe')"
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          python scripts/lentor_package.py --binaries codex-rs/target/debug --output lentor-ci.zip --version ci
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          python scripts/lentor_smoke.py lentor-ci.zip
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+        with:
+          name: lentor-windows-ci
+          path: lentor-ci.zip
+          retention-days: 7
+          if-no-files-found: error

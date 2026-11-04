@@ -180,14 +180,14 @@ enum Subcommand {
     /// [experimental] Manage the app-server daemon with remote control enabled.
     RemoteControl(RemoteControlCommand),
 
-    /// Launch the Desktop app (opens the app installer if missing).
+    /// Launch upstream Codex desktop (opens its installer if missing).
     #[cfg(any(target_os = "macos", target_os = "windows"))]
     App(app_cmd::AppCommand),
 
     /// Generate shell completion scripts.
     Completion(CompletionCommand),
 
-    /// Run the inherited upstream updater (no Lentor release channel yet).
+    /// Show Lentor update availability.
     Update,
 
     /// Diagnose local Lentor installation, config, auth, and runtime health.
@@ -494,7 +494,7 @@ type HostSandboxArgs = UnsupportedSandboxArgs;
 #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
 #[derive(Debug, Parser)]
 struct UnsupportedSandboxArgs {
-    /// Layer $CODEX_HOME/<name>.config.toml on top of the base user config.
+    /// Layer $LENTOR_HOME/<name>.config.toml on top of the base user config.
     #[arg(long = "profile", short = 'p')]
     pub config_profile: Option<ProfileV2Name>,
 
@@ -526,13 +526,13 @@ struct LoginCommand {
 
     #[arg(
         long = "with-api-key",
-        help = "Read the API key from stdin (e.g. `printenv OPENAI_API_KEY | codex login --with-api-key`)"
+        help = "Read the API key from stdin (e.g. `printenv LENTOR_API_KEY | lentor login --with-api-key`)"
     )]
     with_api_key: bool,
 
     #[arg(
         long = "with-access-token",
-        help = "Read the access token from stdin (e.g. `printenv CODEX_ACCESS_TOKEN | codex login --with-access-token`)"
+        help = "Read the access token from stdin (e.g. `printenv LENTOR_ACCESS_TOKEN | lentor login --with-access-token`)"
     )]
     with_access_token: bool,
 
@@ -801,73 +801,13 @@ fn handle_app_exit(
 
 /// Run the update action and print the result.
 fn run_update_action(
-    action: UpdateAction,
-    cli_executable: Option<&std::path::Path>,
+    _action: UpdateAction,
+    _cli_executable: Option<&std::path::Path>,
 ) -> anyhow::Result<()> {
-    if let UpdateAction::Daemon(source) = action {
-        let executable = cli_executable
-            .ok_or_else(|| anyhow::anyhow!("Cannot locate the launching Lentor CLI"))?;
-        println!("Updating the local background server...");
-        let status = std::process::Command::new(executable)
-            .args(source.command_args())
-            .env(codex_app_server_daemon::telemetry::HANDOFF_ENV, "1")
-            .status()?;
-        anyhow::ensure!(
-            status.success(),
-            "Daemon update failed with status {status}"
-        );
-        println!("Relaunch Codex to reconnect.");
-        return Ok(());
-    }
-    println!();
-    let cmd_str = action.command_str();
-    println!("Updating Codex via `{cmd_str}`...");
-    let status = {
-        #[cfg(windows)]
-        {
-            let (cmd, args) = action.command_args();
-            let cmd = if action == UpdateAction::StandaloneWindows {
-                // These args contain PowerShell metacharacters, so do not let
-                // PATHEXT select a batch shim for this action.
-                "powershell.exe"
-            } else {
-                cmd
-            };
-            let path_env =
-                std::env::var_os("PATH").ok_or_else(|| anyhow::anyhow!("PATH is not set"))?;
-            let command_path = resolve_windows_update_command_from_path(cmd, &path_env)?;
-            // Do not let a project-local command or package-manager config
-            // influence the updater after the user accepts the update prompt.
-            let update_cwd = tempfile::tempdir()?;
-            // Resolve through PATH without consulting the project cwd. When
-            // this returns a .cmd/.bat shim, std::process::Command routes the
-            // absolute path through the system command processor.
-            std::process::Command::new(command_path)
-                .args(args)
-                .current_dir(update_cwd.path())
-                .status()?
-        }
-        #[cfg(not(windows))]
-        {
-            let (cmd, args) = action.command_args();
-            let command_path = crate::wsl_paths::normalize_for_wsl(cmd);
-            let normalized_args: Vec<String> = args
-                .iter()
-                .map(crate::wsl_paths::normalize_for_wsl)
-                .collect();
-            std::process::Command::new(&command_path)
-                .args(&normalized_args)
-                .status()?
-        }
-    };
-    if !status.success() {
-        anyhow::bail!("`{cmd_str}` failed with status {status}");
-    }
-    println!("\n🎉 Update ran successfully! Please restart Codex.");
-    Ok(())
+    anyhow::bail!("Lentor updates are not configured; install a Lentor release manually")
 }
 
-#[cfg(windows)]
+#[cfg(all(windows, test))]
 fn resolve_windows_update_command_from_path(
     command: &str,
     path_env: &std::ffi::OsStr,
@@ -876,7 +816,7 @@ fn resolve_windows_update_command_from_path(
         std::env::join_paths(std::env::split_paths(path_env).filter(|path| path.is_absolute()))?;
     if path_env.is_empty() {
         anyhow::bail!(
-            "Could not find an absolute update command `{command}` on PATH. Please update manually: https://developers.openai.com/codex/cli/"
+            "Could not find an absolute update command `{command}` on PATH. Please update Lentor manually."
         );
     }
     which::which_in_global(command, Some(&path_env))?
@@ -888,7 +828,7 @@ fn run_update_command() -> anyhow::Result<()> {
     #[cfg(debug_assertions)]
     {
         anyhow::bail!(
-            "`codex update` is not available in debug builds. Install a release build of Codex to use this command."
+            "`lentor update` is not available in debug builds. Build or install a Lentor release manually."
         );
     }
 
@@ -896,7 +836,7 @@ fn run_update_command() -> anyhow::Result<()> {
     {
         let Some(action) = codex_tui::get_update_action() else {
             anyhow::bail!(
-                "Could not detect the Codex installation method. Please update manually: https://developers.openai.com/codex/cli/"
+                "Could not detect the Lentor installation method. Please update Lentor manually."
             );
         };
         run_update_action(action, /*cli_executable*/ None)
@@ -1690,7 +1630,7 @@ async fn cli_main(
                         .await;
                     } else if login_cli.api_key.is_some() {
                         eprintln!(
-                            "The --api-key flag is no longer supported. Pipe the key instead, e.g. `printenv OPENAI_API_KEY | codex login --with-api-key`."
+                            "The --api-key flag is no longer supported. Pipe the key instead, e.g. `printenv LENTOR_API_KEY | lentor login --with-api-key`."
                         );
                         std::process::exit(1);
                     } else if login_cli.with_api_key {
@@ -2885,7 +2825,7 @@ mod tests {
         assert_eq!(
             err.to_string(),
             format!(
-                "Could not find an absolute update command `{command}` on PATH. Please update manually: https://developers.openai.com/codex/cli/"
+                "Could not find an absolute update command `{command}` on PATH. Please update Lentor manually."
             )
         );
     }

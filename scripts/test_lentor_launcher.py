@@ -28,7 +28,7 @@ class LentorLauncherTests(unittest.TestCase):
                 self.skipTest("PowerShell is required to exercise the Windows launcher")
             engine = self.folder / "engine.ps1"
             engine.write_text(
-                "@{home = $env:CODEX_HOME; argv = @($args)} | ConvertTo-Json -Compress\n"
+                "@{home = $env:LENTOR_HOME; codexHome = $env:CODEX_HOME; argv = @($args)} | ConvertTo-Json -Compress\n"
                 'if ($args -contains "--fail") { exit 17 }\nexit 0\n',
                 encoding="utf-8",
             )
@@ -36,7 +36,7 @@ class LentorLauncherTests(unittest.TestCase):
         else:
             engine = self.folder / "engine"
             engine.write_text(
-                '#!/bin/sh\nprintf \'%s\\n\' "$CODEX_HOME" "$@"\n'
+                '#!/bin/sh\nprintf \'%s\\n\' "$LENTOR_HOME" "$CODEX_HOME" "$@"\n'
                 'for arg do [ "$arg" != "--fail" ] || exit 17; done\nexit 0\n',
                 encoding="utf-8",
             )
@@ -59,10 +59,11 @@ class LentorLauncherTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         if os.name == "nt":
             output = json.loads(result.stdout)
-            home, args = output["home"], output["argv"]
+            home, codex_home, args = output["home"], output["codexHome"], output["argv"]
         else:
-            home, *args = result.stdout.splitlines()
+            home, codex_home, *args = result.stdout.splitlines()
         self.assertEqual(Path(home), self.home)
+        self.assertEqual(codex_home, self.env["CODEX_HOME"])
         self.assertEqual(args, ["--no-daemon", "--help", "argument with spaces"])
         self.assertTrue(self.home.is_dir())
         self.assertFalse(Path(self.env["CODEX_HOME"]).exists())
@@ -77,7 +78,7 @@ class LentorLauncherTests(unittest.TestCase):
         if os.name == "nt":
             args = json.loads(result.stdout)["argv"]
         else:
-            args = result.stdout.splitlines()[1:]
+            args = result.stdout.splitlines()[2:]
         self.assertEqual(args, ["--no-daemon", "-V", "-h"])
 
 

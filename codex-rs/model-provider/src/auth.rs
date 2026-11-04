@@ -16,6 +16,7 @@ use codex_login::auth::AgentIdentityAuth;
 use codex_login::auth::AgentIdentityAuthError;
 use codex_login::auth::AgentIdentityAuthPolicy;
 use codex_model_provider_info::ModelProviderInfo;
+use codex_model_provider_info::WireApi;
 use codex_protocol::error::CodexErr;
 use codex_protocol::protocol::SessionSource;
 use http::HeaderMap;
@@ -250,6 +251,22 @@ pub(crate) fn resolve_provider_auth(
     auth: Option<&CodexAuth>,
     provider: &ModelProviderInfo,
 ) -> codex_protocol::error::Result<SharedAuthProvider> {
+    if provider.wire_api == WireApi::Messages {
+        let token = bearer_auth_for_provider(provider)?
+            .and_then(|auth| auth.token)
+            .or_else(|| {
+                provider
+                    .auth
+                    .as_ref()
+                    .and_then(|_| auth.and_then(|auth| auth.get_token().ok()))
+            });
+        let api_provider = provider.to_api_provider(/*auth_mode*/ None)?;
+        return Ok(Arc::new(MessagesAuthProvider {
+            token,
+            configured_key: api_provider.headers.contains_key("x-api-key"),
+            configured_version: api_provider.headers.contains_key("anthropic-version"),
+        }));
+    }
     if let Some(auth) = bearer_auth_for_provider(provider)? {
         return Ok(Arc::new(auth));
     }
@@ -284,6 +301,9 @@ pub(crate) async fn resolve_provider_auth_for_scope(
         session_source,
         agent_identity_session_fallback,
     } = scope;
+    if provider.wire_api == WireApi::Messages {
+        return resolve_provider_auth(auth, provider).map(ResolvedProviderAuth::new);
+    }
     if let Some(CodexAuth::AgentIdentity(agent_identity_auth)) = auth {
         return Ok(ResolvedProviderAuth::for_agent_identity(
             agent_identity_auth.clone(),
@@ -341,6 +361,28 @@ fn should_bootstrap_chatgpt_agent_identity(
         && matches!(auth, Some(CodexAuth::Chatgpt(_)))
 }
 
+struct MessagesAuthProvider {
+    token: Option<String>,
+    configured_key: bool,
+    configured_version: bool,
+}
+
+impl AuthProvider for MessagesAuthProvider {
+    fn add_auth_headers(&self, headers: &mut HeaderMap) -> Result<(), AuthError> {
+        if !self.configured_key
+            && let Some(token) = &self.token
+        {
+            let value = HeaderValue::from_str(token)
+                .map_err(|_| AuthError::Build("invalid provider API key header".to_string()))?;
+            headers.insert("x-api-key", value);
+        }
+        if !self.configured_version {
+            headers.insert("anthropic-version", HeaderValue::from_static("2023-06-01"));
+        }
+        Ok(())
+    }
+}
+
 fn bearer_auth_for_provider(
     provider: &ModelProviderInfo,
 ) -> codex_protocol::error::Result<Option<BearerAuthProvider>> {
@@ -348,7 +390,13 @@ fn bearer_auth_for_provider(
         let base_url = provider.base_url.as_deref().ok_or_else(|| {
             CodexErr::InvalidRequest("keyring provider requires an API base URL".to_string())
         })?;
-        let key = crate::provider_credentials::load_provider_api_key(reference, base_url)
+        let base_url = if provider.wire_api == WireApi::Responses {
+            base_url.to_string()
+        } else {
+            codex_model_provider_info::normalize_translated_base_url(base_url, provider.wire_api)
+                .map_err(CodexErr::InvalidRequest)?
+        };
+        let key = crate::provider_credentials::load_provider_api_key(reference, &base_url)
             .map_err(|error| CodexErr::InvalidRequest(error.to_string()))?;
         return Ok(Some(BearerAuthProvider::new(key)));
     }
@@ -431,6 +479,29 @@ mod tests {
     use wiremock::matchers::path;
 
     use super::*;
+
+    #[test]
+    fn messages_auth_uses_key_and_version_without_bearer() {
+        let auth = MessagesAuthProvider {
+            token: Some("test-key".into()),
+            configured_key: false,
+            configured_version: false,
+        };
+        let headers = auth.to_auth_headers().unwrap();
+        assert_eq!(headers.get("x-api-key").unwrap(), "test-key");
+        assert_eq!(headers.get("anthropic-version").unwrap(), "2023-06-01");
+        assert!(!headers.contains_key(http::header::AUTHORIZATION));
+    }
+
+    #[test]
+    fn messages_auth_leaves_explicit_headers_untouched() {
+        let auth = MessagesAuthProvider {
+            token: Some("test-key".into()),
+            configured_key: true,
+            configured_version: true,
+        };
+        assert!(auth.to_auth_headers().unwrap().is_empty());
+    }
 
     static NEXT_CODEX_HOME_ID: AtomicUsize = AtomicUsize::new(0);
     const TEST_CHATGPT_ID_TOKEN: &str = "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJlbWFpbCI6InVzZXJAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiaHR0cHM6Ly9hcGkub3BlbmFpLmNvbS9hdXRoIjp7ImNoYXRncHRfdXNlcl9pZCI6InVzZXItMTIzNDUiLCJ1c2VyX2lkIjoidXNlci0xMjM0NSIsImNoYXRncHRfcGxhbl90eXBlIjoicHJvIiwiY2hhdGdwdF9hY2NvdW50X2lkIjoiYWNjb3VudC0xMjMifX0.c2ln";
@@ -624,6 +695,35 @@ mod tests {
             headers.get(AUTHORIZATION),
             Some(&HeaderValue::from_static("Bearer command-token"))
         );
+    }
+
+    #[test]
+    fn messages_command_auth_is_provider_scoped() {
+        let mut provider =
+            create_oss_provider_with_base_url("http://localhost:11434/v1", WireApi::Messages);
+        let ambient = CodexAuth::from_api_key("ambient-token");
+        let headers = resolve_provider_auth(Some(&ambient), &provider)
+            .unwrap()
+            .to_auth_headers()
+            .unwrap();
+        assert!(!headers.contains_key("x-api-key"));
+
+        provider.auth = Some(ModelProviderAuthInfo {
+            command: "print-token".to_string(),
+            args: Vec::new(),
+            timeout_ms: NonZeroU64::new(5_000).unwrap(),
+            refresh_interval_ms: 300_000,
+            cwd: std::env::current_dir().unwrap().try_into().unwrap(),
+        });
+        let headers = resolve_provider_auth(Some(&ambient), &provider)
+            .unwrap()
+            .to_auth_headers()
+            .unwrap();
+        assert_eq!(
+            headers.get("x-api-key"),
+            Some(&HeaderValue::from_static("ambient-token"))
+        );
+        assert!(!headers.contains_key(AUTHORIZATION));
     }
 
     #[test]

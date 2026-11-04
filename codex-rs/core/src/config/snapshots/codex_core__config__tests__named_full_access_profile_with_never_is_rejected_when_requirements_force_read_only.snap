@@ -1,0 +1,6 @@
+---
+source: core/src/config/config_tests.rs
+assertion_line: 11566
+expression: err.to_string()
+---
+`approval_policy = "never"` cannot be used because requirements do not allow `sandbox_mode = "danger-full-access"`; Lentor would fall back to read-only permissions with approvals disabled. Choose an `approval_policy` based on what you need, such as `on-request`, or choose an allowed sandbox mode.

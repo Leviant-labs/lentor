@@ -5,3 +5,6 @@
 pub use codex_protocol::error;
 
 mod suite;
+
+#[path = "suite/translated_compaction.rs"]
+mod translated_compaction;
