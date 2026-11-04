@@ -26,7 +26,11 @@ fn installation(fixture: &Fixture, environment: ManagedEnvironment<'_>) -> Resul
     }
     for (family, manager, root) in [
         ("CODEX", environment.codex_manager, environment.codex_root),
-        ("LENTOR", environment.lentor_manager, environment.lentor_root),
+        (
+            "LENTOR",
+            environment.lentor_manager,
+            environment.lentor_root,
+        ),
     ] {
         if let Some(manager) = manager {
             command.env(format!("{family}_MANAGED_BY_{manager}"), "1");
@@ -63,23 +67,36 @@ fn check_manager(name: &str, method: &str, detail: &str, old_manager: &str) -> R
             "managed by pnpm":"false","managed by Vite+":"false"
         }
     });
-    let old_only = installation(&fixture, ManagedEnvironment {
-        codex_manager: Some(name), codex_root: Some("old-root"),
-        ..Default::default()
-    })?;
+    let old_only = installation(
+        &fixture,
+        ManagedEnvironment {
+            codex_manager: Some(name),
+            codex_root: Some("old-root"),
+            ..Default::default()
+        },
+    )?;
     assert_eq!(identity(&old_only), expected);
     expected["context"] = method.into();
     expected["root"] = "new-root".into();
     expected["managers"][detail] = "true".into();
-    let new_only = installation(&fixture, ManagedEnvironment {
-        lentor_manager: Some(name), lentor_root: Some("new-root"),
-        ..Default::default()
-    })?;
+    let new_only = installation(
+        &fixture,
+        ManagedEnvironment {
+            lentor_manager: Some(name),
+            lentor_root: Some("new-root"),
+            ..Default::default()
+        },
+    )?;
     assert_eq!(identity(&new_only), expected);
-    let conflict = installation(&fixture, ManagedEnvironment {
-        codex_manager: Some(old_manager), lentor_manager: Some(name),
-        codex_root: Some("old-root"), lentor_root: Some("new-root"),
-    })?;
+    let conflict = installation(
+        &fixture,
+        ManagedEnvironment {
+            codex_manager: Some(old_manager),
+            lentor_manager: Some(name),
+            codex_root: Some("old-root"),
+            lentor_root: Some("new-root"),
+        },
+    )?;
     assert_eq!(identity(&conflict), expected);
     Ok(())
 }
@@ -107,17 +124,30 @@ fn vite_environment_is_independent() -> Result<()> {
 #[test]
 fn npm_missing_root_uses_only_lentor_provenance() -> Result<()> {
     let fixture = Fixture::new()?;
-    let old_only = installation(&fixture, ManagedEnvironment {
-        codex_manager: Some("NPM"), ..Default::default()
-    })?;
+    let old_only = installation(
+        &fixture,
+        ManagedEnvironment {
+            codex_manager: Some("NPM"),
+            ..Default::default()
+        },
+    )?;
     assert_eq!(old_only["status"], "ok");
-    let new_only = installation(&fixture, ManagedEnvironment {
-        lentor_manager: Some("NPM"), ..Default::default()
-    })?;
-    let conflict = installation(&fixture, ManagedEnvironment {
-        codex_manager: Some("BUN"), lentor_manager: Some("NPM"),
-        codex_root: Some("old-root"), ..Default::default()
-    })?;
+    let new_only = installation(
+        &fixture,
+        ManagedEnvironment {
+            lentor_manager: Some("NPM"),
+            ..Default::default()
+        },
+    )?;
+    let conflict = installation(
+        &fixture,
+        ManagedEnvironment {
+            codex_manager: Some("BUN"),
+            lentor_manager: Some("NPM"),
+            codex_root: Some("old-root"),
+            ..Default::default()
+        },
+    )?;
     assert_eq!(identity(&conflict), identity(&new_only));
     let mut selected = json!({
         "status":conflict["status"],
@@ -134,4 +164,3 @@ fn npm_missing_root_uses_only_lentor_provenance() -> Result<()> {
     "###);
     Ok(())
 }
-

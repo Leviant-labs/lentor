@@ -205,7 +205,12 @@ impl ChatNormalizer {
         };
         // Normalize service fields on every chunk, including late fingerprints
         // and usage-only chunks, before Respan projects changed fields to Native.
-        for field in ["created", "system_fingerprint", "service_tier", "generationId"] {
+        for field in [
+            "created",
+            "system_fingerprint",
+            "service_tier",
+            "generationId",
+        ] {
             let Some(metadata) = object.remove(field) else {
                 continue;
             };

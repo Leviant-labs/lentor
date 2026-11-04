@@ -26,17 +26,24 @@ earlier focused PR branches are preserved. This is a prerelease checkpoint.
 - Chat diagnostics received HTTP 200 and identified optional root `generationId`
   and usage accounting extensions. The final small follow-up ignores those
   accounting extensions while retaining supported token counters and existing
-  text/tool validation. Its scoped codec check is queued behind the workspace
-  build; a fresh native build and live Chat acceptance are still pending.
+  text/tool validation. The final scoped codec run passed 48/48 cases, zero
+  skipped (nextest run `2c477b76-3414-4cc8-9445-310b34214a41`), including
+  the gateway metadata fixture with preserved tool calls and token counts.
+  A fresh native build and live Chat acceptance are still pending.
 - The user authorized the complete default-feature workspace suite. Integration
-  helpers rebuilt successfully and `just test` is compiling its test dependencies.
-  This is not yet full-suite verification. Final scoped lint and formatting are
-  also pending after the active checks.
+  helpers rebuilt successfully. The `just test` attempt stopped before test
+  execution in `glib-sys`: its GLib discovery command could not find `pkg-config`.
+  The workspace includes the native GStreamer/GLib-dependent voice host. Native
+  SDK setup and a new full-suite attempt remain open. Final scoped lint
+  (`codex-provider-codecs`, `codex-cli`, `codex-install-context`) and `just fmt`
+  completed successfully after the passing codec check. Tests were not rerun
+  after lint/format. The source-checkpoint result is recorded at
+  [evidence/2026-11-04-source-checkpoint.json](evidence/2026-11-04-source-checkpoint.json).
 - The exact-name checks on crates.io and npm returned 404. GitHub search including
   forks found the existing `Leviant-labs/lentor` repository as its only exact match.
   These are point-in-time namespace observations, not reservations or trademark
   clearance. Hosted checks, dependency-advisory triage and release review remain
-  open. No merge, promotion or publication is authorized by this checkpoint.
+  open. This checkpoint includes no package release, merge or promotion.
 
 ## Earlier 2026-11-04 integrated checkpoint
 

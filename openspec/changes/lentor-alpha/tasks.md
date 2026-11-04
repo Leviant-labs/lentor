@@ -81,7 +81,10 @@
   all 15 offline harness tests passed. Earlier serial audits timed out and remain
   failed attempts. Chat still fails streaming: bounded diagnostics identify
   additional generation/accounting fields that the strict adapter rejects.
-  Its compatibility fix and fresh Chat acceptance remain pending.
+  Its optional-accounting compatibility fix now passes all 48 scoped codec
+  cases, zero skipped, including retained tool calls and token counters.
+  Evidence: `.worktrees/reviews/lentor-alpha-chat-accounting-codecs-2026-11-04.log`.
+  A fresh native build and live Chat acceptance remain pending.
 
 ## Focused agent boundary verification
 
@@ -112,8 +115,14 @@
   the pinned V8 inputs, and CI explicitly selects Python 3.12; hosted execution
   of these local workflow changes remains unverified.
   The user authorized the complete default-feature Rust workspace suite on
-  2026-11-04. Native integration helpers rebuilt successfully; `just test` is
-  running and is still compiling dependencies. No full-suite pass is claimed.
+  2026-11-04. Native integration helpers rebuilt successfully. The complete
+  `just test` attempt then stopped before test execution: `glib-sys` could not
+  find `pkg-config` for GLib discovery while building the workspace voice host.
+  Native SDK setup and a fresh full run remain open. No full-suite pass is claimed.
+  Final scoped `just fix` for provider-codecs, CLI and install-context completed
+  without warnings, followed by successful `just fmt`; no tests were rerun
+  after those finalization steps. Compact results are recorded in
+  `evidence/2026-11-04-source-checkpoint.json` beside this task file.
   Parent-workspace logs: `lentor-alpha-full-suite-helpers-2026-11-04.log` and
   `lentor-alpha-full-workspace-2026-11-04.log` under `.worktrees/reviews`.
 - [ ] Partial: build prebuilt-only Windows x64 archive and verify helper lookup,

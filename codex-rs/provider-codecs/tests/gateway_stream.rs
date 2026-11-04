@@ -12,7 +12,10 @@ use serde_json::Value;
 use serde_json::json;
 use std::sync::Arc;
 
-#[expect(clippy::expect_used, reason = "Invalid fixture data must fail during setup.")]
+#[expect(
+    clippy::expect_used,
+    reason = "Invalid fixture data must fail during setup."
+)]
 fn user() -> ResponseItem {
     serde_json::from_value(json!({
         "type":"message", "role":"user",
@@ -21,7 +24,10 @@ fn user() -> ResponseItem {
     .expect("valid gateway fixture")
 }
 
-#[expect(clippy::expect_used, reason = "Invalid fixture data must fail during setup.")]
+#[expect(
+    clippy::expect_used,
+    reason = "Invalid fixture data must fail during setup."
+)]
 fn request(input: Vec<ResponseItem>) -> ResponsesApiRequest {
     let tools = serde_json::value::RawValue::from_string(
         json!([
@@ -68,8 +74,13 @@ fn message(kind: &str, mut body: Value) -> String {
 
 #[test]
 fn chat_gateway_metadata_preserves_completed_tool_calls() {
-    let encoded = encode_request(Protocol::Chat, &"a".repeat(/*n*/ 64), &request(vec![user()]), &[])
-        .expect("valid gateway fixture");
+    let encoded = encode_request(
+        Protocol::Chat,
+        &"a".repeat(/*n*/ 64),
+        &request(vec![user()]),
+        &[],
+    )
+    .expect("valid gateway fixture");
     let mut codec = CodecStream::new(Protocol::Chat, &"a".repeat(/*n*/ 64), &encoded);
     for frame in [
         chat(json!({"role":"assistant"}), Value::Null),
@@ -152,8 +163,13 @@ fn gateway_metadata_is_validated_before_tools_commit() {
         json!("invalid"),
         json!({"gateway":{"value":"x".repeat(/*n*/ 32 * 1024)}}),
     ] {
-        let encoded = encode_request(Protocol::Chat, &"a".repeat(/*n*/ 64), &request(vec![user()]), &[])
-            .expect("valid gateway fixture");
+        let encoded = encode_request(
+            Protocol::Chat,
+            &"a".repeat(/*n*/ 64),
+            &request(vec![user()]),
+            &[],
+        )
+        .expect("valid gateway fixture");
         let mut codec = CodecStream::new(Protocol::Chat, &"a".repeat(/*n*/ 64), &encoded);
         codec
             .push(
@@ -181,8 +197,13 @@ fn malformed_late_chat_metadata_cannot_release_tools() {
         ("system_fingerprint", json!("x".repeat(/*n*/ 513))),
         ("service_tier", json!([])),
     ] {
-        let encoded = encode_request(Protocol::Chat, &"a".repeat(/*n*/ 64), &request(vec![user()]), &[])
-            .expect("valid gateway fixture");
+        let encoded = encode_request(
+            Protocol::Chat,
+            &"a".repeat(/*n*/ 64),
+            &request(vec![user()]),
+            &[],
+        )
+        .expect("valid gateway fixture");
         let mut codec = CodecStream::new(Protocol::Chat, &"a".repeat(/*n*/ 64), &encoded);
         for frame in [
             chat(
