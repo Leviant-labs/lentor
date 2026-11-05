@@ -1046,7 +1046,7 @@ fn plugin_remote_section_error_next_step(label: &str, err: &str) -> &'static str
     } else if err.contains("not found") || err.contains("status 404") {
         "Check that you are signed in to the correct workspace and still have access"
     } else if err.contains("old build") || err.contains("update codex") || err.contains("stale") {
-        "Update Codex, then try opening the shared plugin again"
+        "Update Lentor, then try opening the shared plugin again"
     } else if err.contains("service unavailable")
         || err.contains("temporarily unavailable")
         || err.contains("status 503")
@@ -1068,7 +1068,7 @@ fn plugin_sharing_disabled_remote_section_error() -> PluginRemoteSectionError {
     PluginRemoteSectionError {
         section_id: "shared-with-me".to_string(),
         label: "Shared with me".to_string(),
-        message: "Enable plugin sharing for this Codex session to load shared plugins".to_string(),
+        message: "Enable plugin sharing for this Lentor session to load shared plugins".to_string(),
     }
 }
 
@@ -1554,7 +1554,7 @@ mod tests {
             (
                 "Shared with me",
                 "old build fallback",
-                "Update Codex, then try opening the shared plugin again",
+                "Update Lentor, then try opening the shared plugin again",
             ),
             (
                 "Shared with me",
@@ -1588,7 +1588,7 @@ mod tests {
             PluginRemoteSectionError {
                 section_id: "shared-with-me".to_string(),
                 label: "Shared with me".to_string(),
-                message: "Enable plugin sharing for this Codex session to load shared plugins"
+                message: "Enable plugin sharing for this Lentor session to load shared plugins"
                     .to_string(),
             }
         );

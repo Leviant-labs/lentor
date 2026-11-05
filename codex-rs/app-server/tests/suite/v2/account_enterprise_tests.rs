@@ -185,13 +185,13 @@ async fn enterprise_login_attempt_lifecycle() -> Result<()> {
                 "--nocapture",
             ])
             .env(CHILD, "1")
-            .env("CODEX_HOME", home.path())
+            .env("LENTOR_HOME", home.path())
             .env(
                 REFRESH_TOKEN_URL_OVERRIDE_ENV_VAR,
                 format!("{}/oauth/token", oauth_server.uri()),
             )
             .env_remove("OPENAI_API_KEY")
-            .env_remove("CODEX_API_KEY")
+            .env_remove("LENTOR_API_KEY")
             .env_remove(CODEX_ACCESS_TOKEN_ENV_VAR)
             .current_dir(home.path())
             .output()
@@ -1602,13 +1602,13 @@ async fn enterprise_login_setup_is_cancelled_by_account_changes() -> Result<()> 
                 "--nocapture",
             ])
             .env(CHILD, "1")
-            .env("CODEX_HOME", home.path())
+            .env("LENTOR_HOME", home.path())
             .env(
                 REFRESH_TOKEN_URL_OVERRIDE_ENV_VAR,
                 format!("{}/oauth/token", oauth_server.uri()),
             )
             .env_remove("OPENAI_API_KEY")
-            .env_remove("CODEX_API_KEY")
+            .env_remove("LENTOR_API_KEY")
             .env_remove(CODEX_ACCESS_TOKEN_ENV_VAR)
             .current_dir(home.path())
             .output()

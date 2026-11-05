@@ -82,13 +82,13 @@ trust_level = "trusted"
             .mount(&server)
             .await;
 
-        let output = Command::new(codex_utils_cargo_bin::cargo_bin("codex")?)
+        let output = Command::new(codex_utils_cargo_bin::cargo_bin("lentor")?)
             .current_dir(codex_home.path())
-            .env("CODEX_HOME", codex_home.path())
+            .env("LENTOR_HOME", codex_home.path())
             .env("NO_PROXY", "127.0.0.1,localhost")
             .env("no_proxy", "127.0.0.1,localhost")
-            .env_remove("CODEX_ACCESS_TOKEN")
-            .env_remove("CODEX_API_KEY")
+            .env_remove("LENTOR_ACCESS_TOKEN")
+            .env_remove("LENTOR_API_KEY")
             .env_remove("OPENAI_API_KEY")
             .arg("--cd")
             .arg(workspace.path())
@@ -159,11 +159,11 @@ async fn invalid_custom_ca_falls_back_to_system_roots() -> Result<()> {
         ),
     )?;
     for sandbox in [None, Some("seatbelt")] {
-        let mut command = Command::new(codex_utils_cargo_bin::cargo_bin("codex")?);
+        let mut command = Command::new(codex_utils_cargo_bin::cargo_bin("lentor")?);
         command
             .args(["doctor", "--json"])
-            .env("CODEX_HOME", codex_home.path())
-            .env("CODEX_CA_CERTIFICATE", &certificate)
+            .env("LENTOR_HOME", codex_home.path())
+            .env("LENTOR_CA_CERTIFICATE", &certificate)
             .stdin(Stdio::null());
         if let Some(sandbox) = sandbox {
             command
@@ -223,9 +223,9 @@ fn doctor_reports_macos_system_proxy_configuration_and_policy() -> Result<()> {
 
 #[cfg(target_os = "macos")]
 fn doctor_report(codex_home: &Path) -> Result<Value> {
-    let output = Command::new(codex_utils_cargo_bin::cargo_bin("codex")?)
+    let output = Command::new(codex_utils_cargo_bin::cargo_bin("lentor")?)
         .args(["doctor", "--json"])
-        .env("CODEX_HOME", codex_home)
+        .env("LENTOR_HOME", codex_home)
         .stdin(Stdio::null())
         .output()
         .context("failed to run the doctor")?;

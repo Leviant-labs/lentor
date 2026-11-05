@@ -80,14 +80,14 @@ pub(crate) async fn record_completed_response_item(
     sess: &Session,
     step_context: &StepContext,
     item: &ResponseItem,
-) {
+) -> Result<()> {
     record_completed_response_item_with_finalized_facts(
         sess,
         step_context,
         item,
         /*finalized_facts*/ None,
     )
-    .await;
+    .await
 }
 
 pub(crate) async fn record_completed_response_item_with_finalized_facts(
@@ -95,14 +95,42 @@ pub(crate) async fn record_completed_response_item_with_finalized_facts(
     step_context: &StepContext,
     item: &ResponseItem,
     finalized_facts: Option<&FinalizedTurnItemFacts>,
-) {
+) -> Result<()> {
     let turn_context = &step_context.turn;
-    sess.record_conversation_items(
-        turn_context,
-        &step_context.settings.model_info,
-        std::slice::from_ref(item),
-    )
-    .await;
+    let provider = turn_context.provider.info();
+    let native_state = if provider.wire_api == codex_model_provider_info::WireApi::Responses {
+        None
+    } else {
+        let base_url = provider.base_url.as_deref().ok_or_else(|| {
+            CodexErr::InvalidRequest("translated provider requires a base URL".to_string())
+        })?;
+        sess.services.model_client.native_state_for_item(
+            &turn_context.config.model_provider_id,
+            base_url,
+            provider.wire_api,
+            item,
+        )?
+    };
+    if let Some(native_provider_state) = native_state {
+        let mut envelope = ResponseItemEnvelope::new(item.clone());
+        envelope
+            .metadata
+            .get_or_insert_default()
+            .native_provider_state = Some(native_provider_state);
+        sess.record_annotated_conversation_items(
+            turn_context,
+            &step_context.settings.model_info,
+            vec![envelope],
+        )
+        .await;
+    } else {
+        sess.record_conversation_items(
+            turn_context,
+            &step_context.settings.model_info,
+            std::slice::from_ref(item),
+        )
+        .await;
+    }
     if turn_context.config.otel.agent_response_logging_enabled() {
         turn_context
             .extension_data
@@ -153,6 +181,7 @@ pub(crate) async fn record_completed_response_item_with_finalized_facts(
         sess.record_memory_citation_for_turn(&turn_context.sub_id)
             .await;
     }
+    Ok(())
 }
 
 fn response_item_may_include_external_context(item: &ResponseItem) -> bool {
@@ -346,7 +375,7 @@ pub(crate) async fn handle_output_item_done(
             );
 
             record_completed_response_item(ctx.sess.as_ref(), ctx.step_context.as_ref(), &item)
-                .await;
+                .await?;
 
             let cancellation_token = ctx.cancellation_token.child_token();
             let runtime = ctx.tool_runtime.clone();
@@ -405,7 +434,7 @@ pub(crate) async fn handle_output_item_done(
                 &item,
                 finalized_facts.as_ref(),
             )
-            .await;
+            .await?;
 
             output.last_agent_message = finalized_facts.and_then(|facts| facts.last_agent_message);
         }
@@ -423,7 +452,7 @@ pub(crate) async fn handle_output_item_done(
                 },
             };
             record_completed_response_item(ctx.sess.as_ref(), ctx.step_context.as_ref(), &item)
-                .await;
+                .await?;
             if let Some(response_item) = response_input_to_response_item(&response) {
                 ctx.sess
                     .record_conversation_items(

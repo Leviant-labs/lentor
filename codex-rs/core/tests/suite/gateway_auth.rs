@@ -152,7 +152,7 @@ async fn configured_gateway_http_initialization_fails_closed() -> Result<()> {
             .arg("suite::gateway_auth::configured_gateway_http_initialization_fails_closed")
             .arg("--nocapture")
             .env(CHILD_ENV, "1")
-            .env("CODEX_CA_CERTIFICATE", invalid_ca)
+            .env("LENTOR_CA_CERTIFICATE", invalid_ca)
             .output()?;
         assert!(
             output.status.success(),

@@ -11,6 +11,7 @@ import urllib.error
 import zipfile
 from email.parser import BytesParser
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from pydantic import ValidationError
@@ -138,20 +139,14 @@ def test_root_fmt_recipes_use_shared_formatter_driver() -> None:
     )
 
 
+@pytest.mark.parametrize("os_name", ["posix", "nt"])
 def test_root_format_driver_covers_all_formatter_groups(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
+    os_name: str,
 ) -> None:
     """The shared driver should retain every formatter in both modes."""
     script = _load_root_format_script_module()
-    for name in (
-        "bazel/rules/example.rs",
-        "codex-rs/src/lib.rs",
-        "codex-rs/new file.rs",
-    ):
-        path = tmp_path / name
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text("")
     git_ls_files_args = [
         "git",
         "ls-files",
@@ -163,16 +158,30 @@ def test_root_format_driver_covers_all_formatter_groups(
 
     # The Python SDK CI image has no Git; keep discovery mocked at the process boundary.
     def fake_check_output(args, *, cwd):
+        if args == ["cargo", "metadata", "--no-deps", "--format-version", "1"]:
+            assert cwd == tmp_path / "codex-rs"
+            return json.dumps(
+                {
+                    "workspace_members": ["core"],
+                    "packages": [
+                        {
+                            "id": "core",
+                            "name": "codex-core",
+                            "targets": [{"src_path": "core/src/lib.rs"}],
+                        },
+                        {"id": "foreign", "name": "foreign", "targets": []},
+                    ],
+                }
+            ).encode()
         assert cwd == tmp_path
-        if args == git_ls_files_args + ["--", "*.rs"]:
-            return (
-                b"codex-rs/src/lib.rs\0bazel/rules/example.rs\0"
-                b"codex-rs/new file.rs\0codex-rs/deleted.rs\0"
-            )
         assert args == git_ls_files_args
-        return b"MODULE.bazel\0README.md\0third_party/v8/libcxx.BUILD.bazel\0"
+        return b"MODULE.bazel\0README.md\0deleted.bzl\0third_party/v8/libcxx.BUILD.bazel\0"
 
+    (tmp_path / "MODULE.bazel").touch()
+    (tmp_path / "third_party/v8").mkdir(parents=True)
+    (tmp_path / "third_party/v8/libcxx.BUILD.bazel").touch()
     monkeypatch.setattr(script, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(script, "os", SimpleNamespace(name=os_name, fsdecode=os.fsdecode))
     monkeypatch.setattr(script.subprocess, "check_output", fake_check_output)
     formatters = script.formatter_groups(check=False)
     checks = script.formatter_groups(check=True)
@@ -185,7 +194,7 @@ def test_root_format_driver_covers_all_formatter_groups(
         "Python scripts",
     ]
     assert [group.name for group in checks] == [group.name for group in formatters]
-    assert [len(group.commands) for group in formatters] == [1, 1, 1, 2, 1]
+    assert [len(group.commands) for group in formatters] == [1, 1, 3, 2, 1]
     assert [len(group.commands) for group in checks] == [
         len(group.commands) for group in formatters
     ]
@@ -231,27 +240,20 @@ def test_root_format_driver_covers_all_formatter_groups(
     assert formatters[0].commands[-1].args == ("just", "--unstable", "--fmt")
     assert checks[0].commands[-1].args == ("just", "--unstable", "--fmt", "--check")
     rustfmt_args = (
-        "rustfmt",
-        "--edition",
-        "2024",
-        "--config-path",
-        str(tmp_path / "codex-rs/rustfmt.toml"),
         "--config",
-        "imports_granularity=Item,skip_children=true",
+        "imports_granularity=Item",
     )
-    rust_files = (
-        os.path.join("..", "bazel", "rules", "example.rs"),
-        "new file.rs",
-        os.path.join("src", "lib.rs"),
-    )
+    cargo_args = ("cargo", "fmt")
+    if os_name == "nt":
+        cargo_args += ("--package", "codex-core")
     assert formatters[1].commands == (
-        script.Command(rustfmt_args + rust_files, tmp_path / "codex-rs"),
+        script.Command(cargo_args + ("--",) + rustfmt_args, tmp_path / "codex-rs"),
     )
     assert checks[1].commands == (
-        script.Command(rustfmt_args + ("--check",) + rust_files, tmp_path / "codex-rs"),
+        script.Command(cargo_args + ("--",) + rustfmt_args + ("--check",), tmp_path / "codex-rs"),
     )
-    format_buildifier_args = formatters[2].commands[-1].args
-    check_buildifier_args = checks[2].commands[-1].args
+    format_buildifier_args = formatters[2].commands[1].args
+    check_buildifier_args = checks[2].commands[1].args
     assert format_buildifier_args[:4] == (
         "dotslash",
         str(script.REPO_ROOT / "tools" / "buildifier"),
@@ -269,6 +271,10 @@ def test_root_format_driver_covers_all_formatter_groups(
         "MODULE.bazel",
         "third_party/v8/libcxx.BUILD.bazel",
     )
+    newline_args = (sys.executable, str(Path(script.__file__).resolve()), "--bazel-newlines")
+    for group, mode in ((formatters[2], "fix"), (checks[2], "check")):
+        assert group.commands[0].args == newline_args + (mode,) + format_buildifier_args[4:]
+        assert group.commands[2].args == newline_args + ("check",) + format_buildifier_args[4:]
     assert [group.commands[-1].args[-3:] for group in formatters[3:]] == [
         ("ruff", "format", "sdk/python"),
         ("ruff", "format", "."),

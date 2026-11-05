@@ -328,6 +328,7 @@ export type { ModelProviderCapabilitiesReadParams } from "./ModelProviderCapabil
 export type { ModelProviderCapabilitiesReadResponse } from "./ModelProviderCapabilitiesReadResponse";
 export type { ModelProviderConfigureParams } from "./ModelProviderConfigureParams";
 export type { ModelProviderConfigureResponse } from "./ModelProviderConfigureResponse";
+export type { ModelProviderWireApi } from "./ModelProviderWireApi";
 export type { ModelRerouteReason } from "./ModelRerouteReason";
 export type { ModelReroutedNotification } from "./ModelReroutedNotification";
 export type { ModelSafetyBufferingUpdatedNotification } from "./ModelSafetyBufferingUpdatedNotification";

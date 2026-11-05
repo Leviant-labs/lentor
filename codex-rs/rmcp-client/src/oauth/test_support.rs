@@ -36,6 +36,7 @@ pub(crate) async fn warm_http_client(
 pub(crate) struct TempCodexHome {
     _guard: MutexGuard<'static, ()>,
     _dir: tempfile::TempDir,
+    previous_home: Option<std::ffi::OsString>,
 }
 
 impl TempCodexHome {
@@ -46,12 +47,14 @@ impl TempCodexHome {
             .lock()
             .unwrap_or_else(PoisonError::into_inner);
         let dir = tempdir().expect("create CODEX_HOME temp dir");
+        let previous_home = std::env::var_os("LENTOR_HOME");
         unsafe {
-            std::env::set_var("CODEX_HOME", dir.path());
+            std::env::set_var("LENTOR_HOME", dir.path());
         }
         Self {
             _guard: guard,
             _dir: dir,
+            previous_home,
         }
     }
 
@@ -63,7 +66,11 @@ impl TempCodexHome {
 impl Drop for TempCodexHome {
     fn drop(&mut self) {
         unsafe {
-            std::env::remove_var("CODEX_HOME");
+            if let Some(home) = &self.previous_home {
+                std::env::set_var("LENTOR_HOME", home);
+            } else {
+                std::env::remove_var("LENTOR_HOME");
+            }
         }
     }
 }

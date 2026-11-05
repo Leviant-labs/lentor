@@ -3,6 +3,52 @@ use codex_keyring_store::tests::MockKeyringStore;
 use pretty_assertions::assert_eq;
 
 #[test]
+fn provider_keys_do_not_share_the_old_service() {
+    let store = ServiceAwareStore::default();
+    let reference = store_key(&store, "custom", "https://example.test/v1", "secret").unwrap();
+    assert!(
+        store
+            .load("clodex-api-providers", &reference)
+            .unwrap()
+            .is_none()
+    );
+    assert!(
+        store
+            .load("lentor-api-providers", &reference)
+            .unwrap()
+            .is_some()
+    );
+}
+
+#[derive(Debug, Default)]
+struct ServiceAwareStore(MockKeyringStore);
+
+impl KeyringStore for ServiceAwareStore {
+    fn load(
+        &self,
+        service: &str,
+        account: &str,
+    ) -> Result<Option<String>, codex_keyring_store::CredentialStoreError> {
+        self.0.load(service, &format!("{service}:{account}"))
+    }
+    fn save(
+        &self,
+        service: &str,
+        account: &str,
+        value: &str,
+    ) -> Result<(), codex_keyring_store::CredentialStoreError> {
+        self.0.save(service, &format!("{service}:{account}"), value)
+    }
+    fn delete(
+        &self,
+        service: &str,
+        account: &str,
+    ) -> Result<bool, codex_keyring_store::CredentialStoreError> {
+        self.0.delete(service, &format!("{service}:{account}"))
+    }
+}
+
+#[test]
 fn stored_keys_are_endpoint_bound_and_references_are_immutable() {
     let store = MockKeyringStore::default();
     let first = store_key(&store, "custom", "https://gateway.example/v1/", "first-key").unwrap();

@@ -1,9 +1,11 @@
 ---
 source: tui/src/chatwidget/tests/popups_and_settings.rs
+assertion_line: 3298
 expression: popup
 ---
   Memories
-  Choose how Codex uses and creates memories. Changes are saved to config.toml
+  Choose how Lentor uses and creates memories. Changes are saved to
+  config.toml
 
 
 › [x] Use memories       Use memories starting with the next thread

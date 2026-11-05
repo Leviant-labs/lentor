@@ -1055,6 +1055,7 @@ See the Codex keymap documentation for supported actions and examples."
             },
             pending_open_resume_picker: false,
             provider_transition_blocked: false,
+            provider_setup_state: Default::default(),
             pending_working_directory_change: None,
             pending_start_managed_worktree: None,
             pending_managed_worktree_creation: false,

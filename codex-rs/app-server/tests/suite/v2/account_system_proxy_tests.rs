@@ -72,9 +72,9 @@ async fn browser_login_bootstraps_through_system_proxy() -> Result<()> {
                 command
                     .kill_on_drop(true)
                     .env(TEST_MODE, mode)
-                    .env("CODEX_APP_SERVER_LOGIN_ISSUER", BLOCKED_ORIGIN)
+                    .env("LENTOR_APP_SERVER_LOGIN_ISSUER", BLOCKED_ORIGIN)
                     .env_remove("OPENAI_API_KEY")
-                    .env_remove("CODEX_API_KEY")
+                    .env_remove("LENTOR_API_KEY")
                     .output(),
             )
             .await??;

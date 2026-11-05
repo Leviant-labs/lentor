@@ -297,9 +297,32 @@ async fn run_compact_task_inner_impl(
     let mut client_session = sess.services.model_client.new_session();
     let compaction_response = loop {
         // Clone is required because of the loop
-        let mut turn_input = history
-            .clone()
-            .for_prompt(&turn_context.model_info().input_modalities);
+        let provider = turn_context.provider.info();
+        let mut turn_input = if matches!(
+            provider.wire_api,
+            codex_model_provider_info::WireApi::Chat | codex_model_provider_info::WireApi::Messages
+        ) {
+            let annotated = history
+                .clone()
+                .for_prompt_annotated(&turn_context.model_info().input_modalities);
+            let base_url = provider.base_url.as_deref().ok_or_else(|| {
+                CodexErr::InvalidRequest("translated provider requires a base URL".to_string())
+            })?;
+            sess.services.model_client.hydrate_native_state(
+                &turn_context.config.model_provider_id,
+                base_url,
+                provider.wire_api,
+                &annotated,
+            )?;
+            annotated
+                .into_iter()
+                .map(ResponseItemEnvelope::into_item)
+                .collect()
+        } else {
+            history
+                .clone()
+                .for_prompt(&turn_context.model_info().input_modalities)
+        };
         sess.services
             .executed_tool_calls
             .attach_to_compaction_prompt(&mut turn_input);

@@ -80,10 +80,10 @@ async fn codex_home_symlink_opt_out_uses_loaded_user_config() -> anyhow::Result<
         .await;
         let mut command = test.cmd_with_server(&server);
         command
-            .env_remove("CODEX_API_KEY")
+            .env_remove("LENTOR_API_KEY")
             .env_remove("OPENAI_API_KEY")
-            .env_remove("CODEX_ACCESS_TOKEN")
-            .env("CODEX_HOME", home_env)
+            .env_remove("LENTOR_ACCESS_TOKEN")
+            .env("LENTOR_HOME", home_env)
             .args(["--skip-git-repo-check", "--sandbox", "workspace-write", "--add-dir"])
             .arg(&visualizations)
             .args(["-c", "approvals_reviewer=\"user\"", "-c", "features.shell_snapshot_v2=false"])

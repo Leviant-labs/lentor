@@ -77,7 +77,7 @@ pub use windows::WindowsSystemConfigNamespaceProbe;
 pub use windows::probe_windows_system_config_namespace;
 
 #[cfg(unix)]
-const SYSTEM_CONFIG_TOML_FILE_UNIX: &str = "/etc/codex/config.toml";
+const SYSTEM_CONFIG_TOML_FILE_UNIX: &str = "/etc/lentor/config.toml";
 
 #[cfg(windows)]
 const DEFAULT_PROGRAM_DATA_DIR_WINDOWS: &str = r"C:\ProgramData";
@@ -110,21 +110,21 @@ async fn first_layer_config_error_from_entries(layers: &[ConfigLayerEntry]) -> O
 /// composed with config-style TOML merging plus field-specific handling for
 /// hooks, rules, deny-read permissions, and remote sandbox config:
 ///
-/// - system    `/etc/codex/requirements.toml` (Unix) or
+/// - system    `/etc/lentor/requirements.toml` (Unix) or
 ///   `%ProgramData%\OpenAI\Codex\requirements.toml` (Windows)
 /// - cloud:    enterprise-managed cloud config bundle requirements
-/// - legacy:   `/etc/codex/managed_config.toml` (Unix) reinterpreted as
+/// - legacy:   `/etc/lentor/managed_config.toml` (Unix) reinterpreted as
 ///   requirements.toml
 /// - admin:    managed preferences (*)
 ///
 /// For backwards compatibility, Unix continues to load
-/// `/etc/codex/managed_config.toml` and map it to `requirements.toml`.
+/// `/etc/lentor/managed_config.toml` and map it to `requirements.toml`.
 ///
 /// Configuration is built up from multiple layers in the following order:
 ///
 /// - package:  optional default configuration supplied with the Codex package
 /// - admin:    managed preferences (*)
-/// - system    `/etc/codex/config.toml` (Unix) or
+/// - system    `/etc/lentor/config.toml` (Unix) or
 ///   `%ProgramData%\OpenAI\Codex\config.toml` (Windows)
 /// - cloud     enterprise-managed cloud config bundle fragments
 /// - user      `${CODEX_HOME}/config.toml`
@@ -731,7 +731,7 @@ pub async fn load_requirements_toml(
 
 #[cfg(unix)]
 fn system_requirements_toml_file() -> io::Result<AbsolutePathBuf> {
-    AbsolutePathBuf::from_absolute_path(Path::new("/etc/codex/requirements.toml"))
+    AbsolutePathBuf::from_absolute_path(Path::new("/etc/lentor/requirements.toml"))
 }
 
 #[cfg(windows)]
@@ -812,14 +812,14 @@ fn windows_codex_system_dir() -> PathBuf {
         );
         PathBuf::from(DEFAULT_PROGRAM_DATA_DIR_WINDOWS)
     });
-    program_data.join("OpenAI").join("Codex")
+    program_data.join("LeviantLabs").join("Lentor")
 }
 
 #[cfg(windows)]
 fn windows_system_requirements_toml_file() -> io::Result<AbsolutePathBuf> {
     if let Ok(path) = winreg::RegKey::predef(winreg::enums::HKEY_LOCAL_MACHINE)
         .open_subkey_with_flags(
-            r"SOFTWARE\Policies\OpenAI\Codex",
+            r"SOFTWARE\Policies\LeviantLabs\Lentor",
             winreg::enums::KEY_READ | winreg::enums::KEY_WOW64_64KEY,
         )
         .and_then(|key| key.get_value::<std::ffi::OsString, _>("RequirementsPath"))
@@ -1152,7 +1152,7 @@ impl ProjectTrustContext {
         }
 
         let relative_dir = dir.as_path().strip_prefix(checkout_root.as_path()).ok()?;
-        Some(repo_root.join(relative_dir).join(".codex"))
+        Some(repo_root.join(relative_dir).join(".lentor"))
     }
 }
 
@@ -1864,7 +1864,7 @@ async fn discover_project_layers(
     let mut layers = Vec::new();
     let mut startup_warnings = Vec::new();
     for dir in dirs {
-        let dot_codex_abs = dir.join(".codex");
+        let dot_codex_abs = dir.join(".lentor");
         let dot_codex_uri = PathUri::from_abs_path(&dot_codex_abs);
         if !fs
             .get_metadata(&dot_codex_uri, Default::default(), /*sandbox*/ None)
@@ -2045,7 +2045,7 @@ async fn load_root_checkout_project_config(
     )
 }
 /// The legacy mechanism for specifying admin-enforced configuration is to read
-/// from a file like `/etc/codex/managed_config.toml` that has the same
+/// from a file like `/etc/lentor/managed_config.toml` that has the same
 /// structure as `config.toml` where fields like `approval_policy` can specify
 /// exactly one value rather than a list of allowed values.
 ///
@@ -2170,10 +2170,10 @@ foo = "xyzzy"
     fn windows_codex_system_dir_uses_expected_suffix() {
         let expected = windows_program_data_dir_from_known_folder()
             .unwrap_or_else(|_| PathBuf::from(DEFAULT_PROGRAM_DATA_DIR_WINDOWS))
-            .join("OpenAI")
-            .join("Codex");
+            .join("LeviantLabs")
+            .join("Lentor");
         assert_eq!(windows_codex_system_dir(), expected);
-        assert!(windows_codex_system_dir().ends_with(Path::new("OpenAI").join("Codex")));
+        assert!(windows_codex_system_dir().ends_with(Path::new("LeviantLabs").join("Lentor")));
     }
 
     #[cfg(windows)]
@@ -2181,8 +2181,8 @@ foo = "xyzzy"
     fn windows_system_config_toml_file_uses_expected_suffix() {
         let expected = windows_program_data_dir_from_known_folder()
             .unwrap_or_else(|_| PathBuf::from(DEFAULT_PROGRAM_DATA_DIR_WINDOWS))
-            .join("OpenAI")
-            .join("Codex")
+            .join("LeviantLabs")
+            .join("Lentor")
             .join("config.toml");
         assert_eq!(
             windows_system_config_toml_file()
@@ -2194,7 +2194,7 @@ foo = "xyzzy"
             windows_system_config_toml_file()
                 .expect("config.toml path")
                 .as_path()
-                .ends_with(Path::new("OpenAI").join("Codex").join("config.toml"))
+                .ends_with(Path::new("LeviantLabs").join("Lentor").join("config.toml"))
         );
     }
 }

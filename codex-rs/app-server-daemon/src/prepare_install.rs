@@ -74,7 +74,7 @@ pub async fn update_from_cli(
             .ok()
             .map(|info| info.app_server_version),
         managed_codex_path,
-        message: "The CLI package is selected and pinned. Run `codex app-server daemon update` to return to production updates.".to_string(),
+        message: "The CLI package is selected and pinned. Production daemon updates are disabled in Lentor alpha.".to_string(),
     }))
 }
 
@@ -158,14 +158,14 @@ async fn prepare_from_package(
     let target = platform_target()?;
     let mut metadata: serde_json::Value = serde_json::from_slice(&manifest_bytes)?;
     let entrypoint = if cfg!(windows) {
-        "bin/codex.exe"
+        "bin/lentor.exe"
     } else {
-        "bin/codex"
+        "bin/lentor"
     };
     let source_entrypoint = metadata["entrypoint"].as_str().unwrap_or_default();
     let winget = cfg!(windows)
         && metadata["layoutVersion"] == 1
-        && source_entrypoint == format!("codex-{target}.exe");
+        && source_entrypoint == format!("lentor-{target}.exe");
     anyhow::ensure!(
         metadata["target"] == target && (source_entrypoint == entrypoint || winget),
         "the CLI package does not match this platform or executable"
@@ -310,8 +310,8 @@ async fn prepare_from_package(
         );
     } else {
         #[cfg(unix)]
-        if !stage.path().join("codex").exists() {
-            std::os::unix::fs::symlink("bin/codex", stage.path().join("codex"))?;
+        if !stage.path().join("lentor").exists() {
+            std::os::unix::fs::symlink("bin/lentor", stage.path().join("lentor"))?;
         }
         #[cfg(windows)]
         windows::publish_release(stage.path(), &release).await?;
@@ -439,8 +439,8 @@ fn package_tree(
         let relative = path.strip_prefix(root)?;
         // The Unix installer adds this alias outside the package layout.
         if cfg!(unix)
-            && relative == Path::new("codex")
-            && std::fs::read_link(&path).ok().as_deref() == Some(Path::new("bin/codex"))
+            && relative == Path::new("lentor")
+            && std::fs::read_link(&path).ok().as_deref() == Some(Path::new("bin/lentor"))
         {
             continue;
         }

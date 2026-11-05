@@ -196,12 +196,18 @@ fn session_telemetry_for_request(
     )
 }
 
+#[path = "client/native_state.rs"]
+mod native_state;
+#[path = "client/translated.rs"]
+mod translated;
+
 /// Session-scoped state shared by all [`ModelClient`] clones.
 ///
 /// This is intentionally kept minimal so `ModelClient` does not need to hold a full `Config`. Most
 /// configuration is per turn and is passed explicitly to streaming/unary methods.
 #[derive(Debug)]
 struct ModelClientState {
+    native_state: StdMutex<native_state::NativeStateStore>,
     thread_id: ThreadId,
     provider: SharedModelProvider,
     workspace_routing: WorkspaceRoutingContext,
@@ -584,6 +590,7 @@ impl ModelClient {
             && !memory_consolidation;
         Self {
             state: Arc::new(ModelClientState {
+                native_state: StdMutex::new(native_state::NativeStateStore::default()),
                 thread_id,
                 provider: model_provider,
                 workspace_routing,
@@ -968,13 +975,14 @@ impl ModelClient {
             effort: effort
                 .or_else(|| model_info.default_reasoning_level.clone())
                 .map(|effort| model_info.resolve_reasoning_effort(effort)),
-            summary: (model_info.supports_reasoning_summary_parameter
+            summary: (self.state.provider.info().wire_api == WireApi::Responses
+                && model_info.supports_reasoning_summary_parameter
                 && summary != ReasoningSummaryConfig::None)
                 .then_some(summary),
             // When Responses Lite is disabled, omit context so Responses uses the default,
             // which is currently `current_turn`.
-            context: model_info
-                .use_responses_lite
+            context: (self.state.provider.info().wire_api == WireApi::Responses
+                && model_info.use_responses_lite)
                 .then_some(ReasoningContext::AllTurns),
         }
     }
@@ -1008,7 +1016,8 @@ impl ModelClient {
                 }
             });
         }
-        let is_openai = self.state.provider.info().is_openai();
+        let is_openai = self.state.provider.info().wire_api == WireApi::Responses
+            && self.state.provider.info().is_openai();
         // These prompt-only items are rebuilt on every request. Hash their visible payloads
         // within the thread so retries and resumed sessions preserve their identity.
         let prefix_namespace = Uuid::new_v5(
@@ -1080,12 +1089,14 @@ impl ModelClient {
         if self.state.output_token_replay_enabled && is_openai {
             include.push("output.encrypted_content".to_string());
         }
-        let verbosity = if model_info.support_verbosity {
+        let verbosity = if self.state.provider.info().wire_api == WireApi::Responses
+            && model_info.support_verbosity
+        {
             self.state.model_verbosity.or(model_info.default_verbosity)
         } else {
             if self.state.model_verbosity.is_some() {
                 warn!(
-                    "model_verbosity is set but ignored as the model does not support verbosity: {}",
+                    "model_verbosity is set but ignored as the model or provider protocol does not support verbosity: {}",
                     model_info.slug
                 );
             }
@@ -1148,7 +1159,8 @@ impl ModelClient {
     ///
     /// WebSocket use is controlled by provider capability and session-scoped fallback state.
     pub fn responses_websocket_enabled(&self) -> bool {
-        if !self.state.provider.info().supports_websockets
+        if self.state.provider.info().wire_api != WireApi::Responses
+            || !self.state.provider.info().supports_websockets
             || self.state.disable_websockets.load(Ordering::Relaxed)
         {
             return false;
@@ -2440,6 +2452,19 @@ impl ModelClientSession {
     ) -> Result<ResponseStream> {
         let wire_api = self.client.state.provider.info().wire_api;
         match wire_api {
+            WireApi::Chat | WireApi::Messages => {
+                self.stream_translated(
+                    prompt,
+                    model_info,
+                    session_telemetry,
+                    effort,
+                    summary,
+                    service_tier,
+                    responses_metadata,
+                    inference_trace,
+                )
+                .await
+            }
             WireApi::Responses => {
                 if self.client.responses_websocket_enabled() {
                     let request_trace = current_span_w3c_trace_context();

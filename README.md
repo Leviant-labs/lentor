@@ -31,7 +31,7 @@ This is a source checkout, not a published Lentor package. Build the existing
 engine from `codex-rs`:
 
 ```sh
-cargo build -p codex-cli --bin codex
+cargo build -p codex-cli --bin lentor
 ```
 
 Then run the launcher from the repository root:
@@ -46,8 +46,8 @@ sh ./lentor
 
 The launcher uses the already-built engine and does not rebuild on startup.
 Set `LENTOR_BINARY` to an absolute engine path if using a different build output.
-The internal executable and Rust crates retain their upstream names during this
-first branding pass.
+The CLI binary is named `lentor`; Rust crate names and internal helper binaries
+retain their upstream names.
 
 The launcher uses `~/.lentor` for its user profile, or the directory specified by
 `LENTOR_HOME`. It overrides an inherited `CODEX_HOME` only for the engine process
@@ -67,16 +67,13 @@ The proprietary upstream desktop frontend is not part of this repository.
 
 ## Name checks
 
-Checked on 2026-10-29 before publishing this branding pass:
-
-- [crates.io](https://crates.io/crates/lentor): the exact `lentor` crate lookup returned 404.
-- [npm](https://www.npmjs.com/package/lentor): the exact `lentor` package lookup returned 404.
-- [GitHub](https://github.com/search?q=lentor&type=repositories): no exact-name
-  `lentor` repository appeared in the search results; similarly named repositories
-  exist, including `lentoria` and `lentora-icu`. The `Leviant-labs/lentor`
-  repository lookup returned 404.
-
-These checks do not reserve any name. Check again before a package release.
+On 2026-10-29, the crates.io API and npm registry exact `lentor` lookups
+returned HTTP 404. The project's `Leviant-labs/lentor` GitHub repository
+exists; similar unrelated names include LeafLentor and Lentora. The GitHub
+repository-name search returned no indexed other exact-name repository; the
+project's newly renamed repository was verified directly and may not yet be
+indexed. These checks do not reserve the name or establish
+trademark rights. Repeat and document name checks before release.
 
 ## License
 

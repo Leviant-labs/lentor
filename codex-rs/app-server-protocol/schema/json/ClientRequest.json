@@ -2424,6 +2424,16 @@
         },
         "providerId": {
           "type": "string"
+        },
+        "wireApi": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ModelProviderWireApi"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [
@@ -2433,6 +2443,15 @@
         "providerId"
       ],
       "type": "object"
+    },
+    "ModelProviderWireApi": {
+      "description": "The wire protocol used by an API-key provider.",
+      "enum": [
+        "responses",
+        "chat",
+        "messages"
+      ],
+      "type": "string"
     },
     "MultiAgentMode": {
       "description": "Controls the effective multi-agent delegation instructions for a turn. `custom` means the configured mode hint defines the policy instead of a built-in policy.",

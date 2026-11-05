@@ -58,7 +58,7 @@ async fn mcp_server_enforces_sandbox_state_with_codex_sandbox() -> Result<()> {
     Mock::given(method("POST"))
         .and(path("/mcp"))
         .respond_with(SandboxMcpServer {
-            codex: cargo_bin("codex")?,
+            codex: cargo_bin("lentor")?,
             codex_home: sandbox_home.path().to_path_buf(),
             cwd: server_cwd.path().to_path_buf(),
         })
@@ -189,8 +189,8 @@ impl Respond for SandboxMcpServer {
                 let mut command = background_command(&self.codex);
                 command
                     .current_dir(&self.cwd)
-                    .env("CODEX_HOME", &self.codex_home)
-                    .env_remove("CODEX_ACCESS_TOKEN")
+                    .env("LENTOR_HOME", &self.codex_home)
+                    .env_remove("LENTOR_ACCESS_TOKEN")
                     .env_remove("OPENAI_API_KEY")
                     .env("CODEX_TEST_WRITE_PATH", target_path)
                     .stdin(Stdio::null())

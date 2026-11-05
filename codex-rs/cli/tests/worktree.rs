@@ -234,12 +234,12 @@ trust_level = "trusted"
             .plan_type("enterprise"),
         codex_config::types::AuthCredentialsStoreMode::File,
     )?;
-    let program = codex_utils_cargo_bin::cargo_bin("codex")?;
+    let program = codex_utils_cargo_bin::cargo_bin("lentor")?;
     // Keep cold Rosetta translation outside the timed startup assertions.
     #[cfg(all(target_os = "macos", target_arch = "x86_64"))]
     anyhow::ensure!(
         Command::new(&program)
-            .env("CODEX_HOME", &home)
+            .env("LENTOR_HOME", &home)
             .arg("--version")
             .output()?
             .status
@@ -247,8 +247,8 @@ trust_level = "trusted"
         "failed to prepare CLI test executable"
     );
     let mut env: HashMap<String, String> = std::env::vars().collect();
-    env.insert("CODEX_HOME".into(), home.display().to_string());
-    env.insert("CODEX_SQLITE_HOME".into(), home.display().to_string());
+    env.insert("LENTOR_HOME".into(), home.display().to_string());
+    env.insert("LENTOR_SQLITE_HOME".into(), home.display().to_string());
     env.insert("NO_PROXY".into(), "127.0.0.1,localhost".into());
     env.insert("no_proxy".into(), "127.0.0.1,localhost".into());
     env.insert("TERM".into(), "xterm-256color".into());
@@ -260,9 +260,9 @@ trust_level = "trusted"
     );
     for key in [
         "CODEX_EXEC_SERVER_URL",
-        "CODEX_ACCESS_TOKEN",
+        "LENTOR_ACCESS_TOKEN",
         "OPENAI_API_KEY",
-        "CODEX_API_KEY",
+        "LENTOR_API_KEY",
         "TMUX",
         "TMUX_PANE",
         "ZELLIJ",

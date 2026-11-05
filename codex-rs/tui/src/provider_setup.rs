@@ -4,6 +4,7 @@ use crate::bottom_pane::BottomPaneView;
 use crate::bottom_pane::ViewCompletion;
 use crate::render::renderable::Renderable;
 use codex_app_server_protocol::ModelProviderConfigureParams;
+use codex_app_server_protocol::ModelProviderWireApi;
 use crossterm::event::KeyCode;
 use crossterm::event::KeyEvent;
 use crossterm::event::KeyEventKind;
@@ -21,6 +22,8 @@ const MAX_INPUT_BYTES: usize = 4096;
 pub(crate) struct ProviderSetupForm {
     endpoint: String,
     api_key: String,
+    model: String,
+    wire_api: ModelProviderWireApi,
     field: Field,
     error: Option<String>,
 }
@@ -29,6 +32,8 @@ pub(crate) struct ProviderSetupForm {
 enum Field {
     Endpoint,
     ApiKey,
+    Protocol,
+    Model,
 }
 
 pub(crate) enum ProviderSetupAction {
@@ -41,6 +46,8 @@ impl ProviderSetupForm {
         Self {
             endpoint,
             api_key: String::new(),
+            model: String::new(),
+            wire_api: ModelProviderWireApi::Responses,
             field: Field::Endpoint,
             error: None,
         }
@@ -50,6 +57,8 @@ impl ProviderSetupForm {
         let input = match self.field {
             Field::Endpoint => &mut self.endpoint,
             Field::ApiKey => &mut self.api_key,
+            Field::Model => &mut self.model,
+            Field::Protocol => return,
         };
         for ch in text.chars().filter(|ch| !ch.is_control()) {
             if input.len() + ch.len_utf8() > MAX_INPUT_BYTES {
@@ -67,9 +76,26 @@ impl ProviderSetupForm {
         match event.code {
             KeyCode::Esc => return Some(ProviderSetupAction::Cancel),
             KeyCode::Tab | KeyCode::BackTab | KeyCode::Up | KeyCode::Down => {
-                self.field = match self.field {
-                    Field::Endpoint => Field::ApiKey,
-                    Field::ApiKey => Field::Endpoint,
+                self.field = match (self.field, event.code) {
+                    (Field::Endpoint, KeyCode::BackTab | KeyCode::Up) => Field::Model,
+                    (Field::ApiKey, KeyCode::BackTab | KeyCode::Up) => Field::Endpoint,
+                    (Field::Protocol, KeyCode::BackTab | KeyCode::Up) => Field::ApiKey,
+                    (Field::Model, KeyCode::BackTab | KeyCode::Up) => Field::Protocol,
+                    (Field::Endpoint, _) => Field::ApiKey,
+                    (Field::ApiKey, _) => Field::Protocol,
+                    (Field::Protocol, _) => Field::Model,
+                    (Field::Model, _) => Field::Endpoint,
+                };
+            }
+            KeyCode::Left | KeyCode::Right if matches!(self.field, Field::Protocol) => {
+                self.wire_api = match (self.wire_api, event.code) {
+                    (ModelProviderWireApi::Responses, KeyCode::Right)
+                    | (ModelProviderWireApi::Messages, KeyCode::Left) => ModelProviderWireApi::Chat,
+                    (ModelProviderWireApi::Chat, KeyCode::Right)
+                    | (ModelProviderWireApi::Responses, KeyCode::Left) => {
+                        ModelProviderWireApi::Messages
+                    }
+                    _ => ModelProviderWireApi::Responses,
                 };
             }
             KeyCode::Enter if matches!(self.field, Field::Endpoint) => self.field = Field::ApiKey,
@@ -82,7 +108,9 @@ impl ProviderSetupForm {
                         name: "Custom API".to_string(),
                         base_url: self.endpoint.trim().to_string(),
                         api_key: self.api_key.trim().into(),
-                        model: None,
+                        model: (!self.model.trim().is_empty())
+                            .then(|| self.model.trim().to_string()),
+                        wire_api: Some(self.wire_api),
                     }));
                 }
             }
@@ -90,6 +118,8 @@ impl ProviderSetupForm {
                 match self.field {
                     Field::Endpoint => &mut self.endpoint,
                     Field::ApiKey => &mut self.api_key,
+                    Field::Model => &mut self.model,
+                    Field::Protocol => return None,
                 }
                 .pop();
             }
@@ -97,6 +127,8 @@ impl ProviderSetupForm {
                 match self.field {
                     Field::Endpoint => &mut self.endpoint,
                     Field::ApiKey => &mut self.api_key,
+                    Field::Model => &mut self.model,
+                    Field::Protocol => return None,
                 }
                 .clear();
             }
@@ -116,7 +148,7 @@ impl ProviderSetupForm {
 
 impl Renderable for ProviderSetupForm {
     fn desired_height(&self, _width: u16) -> u16 {
-        11
+        15
     }
 
     fn render(&self, area: Rect, buf: &mut Buffer) {
@@ -129,6 +161,21 @@ impl Renderable for ProviderSetupForm {
             "> "
         } else {
             "  "
+        };
+        let protocol_marker = if matches!(self.field, Field::Protocol) {
+            "> "
+        } else {
+            "  "
+        };
+        let model_marker = if matches!(self.field, Field::Model) {
+            "> "
+        } else {
+            "  "
+        };
+        let protocol = match self.wire_api {
+            ModelProviderWireApi::Responses => "Responses",
+            ModelProviderWireApi::Chat => "Chat Completions",
+            ModelProviderWireApi::Messages => "Messages",
         };
         let endpoint = if self.endpoint.is_empty() {
             "https://provider.example/v1"
@@ -148,6 +195,11 @@ impl Renderable for ProviderSetupForm {
             "".into(),
             format!("{key_marker}API key").cyan().into(),
             format!("  {key}").into(),
+            format!("{protocol_marker}Protocol: {protocol} (left/right)")
+                .cyan()
+                .into(),
+            format!("{model_marker}Model (optional)").cyan().into(),
+            format!("  {}", self.model).into(),
             "".into(),
         ];
         if let Some(error) = &self.error {

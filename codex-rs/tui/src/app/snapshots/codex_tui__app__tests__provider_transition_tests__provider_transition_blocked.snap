@@ -1,0 +1,6 @@
+---
+source: tui/src/app/tests/provider_transition_tests.rs
+assertion_line: 130
+expression: "app.render_transcript_lines_for_reflow(80).lines.iter().map(rendered_line_text).collect::<Vec<_>>().join(\"\\n\")"
+---
+■ Provider settings were saved but could not be activated. Retry /provider or restart Lentor to reload the effective settings.

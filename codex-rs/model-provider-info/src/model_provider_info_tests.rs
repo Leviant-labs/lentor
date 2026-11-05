@@ -193,16 +193,12 @@ supports_standalone_web_search = true
 }
 
 #[test]
-fn test_deserialize_chat_wire_api_shows_helpful_error() {
-    let provider_toml = r#"
-name = "OpenAI using Chat Completions"
-base_url = "https://api.openai.com/v1"
-env_key = "OPENAI_API_KEY"
-wire_api = "chat"
-        "#;
-
-    let err = toml::from_str::<ModelProviderInfo>(provider_toml).unwrap_err();
-    assert!(err.to_string().contains(CHAT_WIRE_API_REMOVED_ERROR));
+fn deserialize_translated_wire_apis() {
+    for (value, expected) in [("chat", WireApi::Chat), ("messages", WireApi::Messages)] {
+        let provider: ModelProviderInfo =
+            toml::from_str(&format!("name = 'test'\nwire_api = '{value}'")).unwrap();
+        assert_eq!(provider.wire_api, expected);
+    }
 }
 
 #[test]

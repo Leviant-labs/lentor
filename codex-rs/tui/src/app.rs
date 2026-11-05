@@ -658,6 +658,7 @@ pub(crate) struct App {
     pending_open_resume_picker: bool,
     /// The configured provider changed but no new provider session is attached yet.
     provider_transition_blocked: bool,
+    provider_setup_state: provider_setup::ProviderSetupState,
     /// Runs a requested /cd after event dispatch returns, with a fresh stack.
     pending_working_directory_change: Option<working_directory::PendingWorkingDirectoryChange>,
     /// Starts worktree setup after the event handler returns, with a fresh stack.

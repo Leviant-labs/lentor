@@ -64,14 +64,14 @@ async fn noise_executor_refreshes_on_401_and_reloads_rotated_credentials() -> Re
         .expect(1)
         .mount(&registry)
         .await;
-    let mut child = tokio::process::Command::new(codex_utils_cargo_bin::cargo_bin("codex")?)
+    let mut child = tokio::process::Command::new(codex_utils_cargo_bin::cargo_bin("lentor")?)
         .current_dir(home.path())
-        .env("CODEX_HOME", home.path())
-        .env_remove("CODEX_API_KEY")
+        .env("LENTOR_HOME", home.path())
+        .env_remove("LENTOR_API_KEY")
         .env_remove("OPENAI_API_KEY")
-        .env_remove("CODEX_ACCESS_TOKEN")
+        .env_remove("LENTOR_ACCESS_TOKEN")
         .env(
-            "CODEX_REFRESH_TOKEN_URL_OVERRIDE",
+            "LENTOR_REFRESH_TOKEN_URL_OVERRIDE",
             format!("{}/refresh", registry.uri()),
         )
         .env("NO_PROXY", "127.0.0.1,localhost")

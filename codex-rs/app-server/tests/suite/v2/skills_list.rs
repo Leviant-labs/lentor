@@ -228,9 +228,9 @@ async fn skills_list_uses_each_cwds_bundled_skills_configuration() -> Result<()>
 
     for (cwd, enabled) in [(disabled_cwd.path(), false), (enabled_cwd.path(), true)] {
         std::fs::create_dir_all(cwd.join(".git"))?;
-        std::fs::create_dir_all(cwd.join(".codex"))?;
+        std::fs::create_dir_all(cwd.join(".lentor"))?;
         std::fs::write(
-            cwd.join(".codex/config.toml"),
+            cwd.join(".lentor/config.toml"),
             format!("[skills.bundled]\nenabled = {enabled}\n"),
         )?;
         set_project_trust_level(codex_home.path(), cwd, TrustLevel::Trusted)?;
@@ -832,9 +832,9 @@ enabled = false
         (third_cwd.path(), true, false),
     ] {
         std::fs::create_dir_all(cwd.join(".git"))?;
-        std::fs::create_dir_all(cwd.join(".codex"))?;
+        std::fs::create_dir_all(cwd.join(".lentor"))?;
         std::fs::write(
-            cwd.join(".codex/config.toml"),
+            cwd.join(".lentor/config.toml"),
             format!(
                 "[features]\nplugins = {plugins_enabled}\n[plugins.\"google-calendar@openai-api-curated\"]\nenabled = {plugin_enabled}\n"
             ),

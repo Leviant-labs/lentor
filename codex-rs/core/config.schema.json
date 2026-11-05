@@ -7103,6 +7103,20 @@
             "responses"
           ],
           "type": "string"
+        },
+        {
+          "description": "OpenAI-compatible Chat Completions.",
+          "enum": [
+            "chat"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "Anthropic-compatible Messages.",
+          "enum": [
+            "messages"
+          ],
+          "type": "string"
         }
       ]
     },

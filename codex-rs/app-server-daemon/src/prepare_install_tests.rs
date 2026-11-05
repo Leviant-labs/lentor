@@ -29,7 +29,7 @@ fn package(root: &Path, version: &str) -> PathBuf {
     for dir in ["bin", "codex-path", "codex-resources/nested"] {
         std::fs::create_dir_all(root.join(dir)).expect("package directory");
     }
-    let bin = root.join("bin/codex");
+    let bin = root.join("bin/lentor");
     codex_utils_cargo_bin::write_executable(&bin, &format!("#!/bin/sh\necho 'codex {version}'\n"))
         .expect("codex executable");
     for file in ["bin/codex-code-mode-host", "codex-path/rg"] {
@@ -44,7 +44,7 @@ fn package(root: &Path, version: &str) -> PathBuf {
     std::fs::write(
         root.join("codex-package.json"),
         serde_json::json!({
-            "version": version, "target": target, "entrypoint": "bin/codex"
+            "version": version, "target": target, "entrypoint": "bin/lentor"
         })
         .to_string(),
     )
@@ -81,7 +81,7 @@ async fn seeds_full_package() {
         std::fs::read_to_string(standalone.join("auto-update-version")).expect("marker"),
         selected.file_name().expect("name").to_string_lossy()
     );
-    assert!(validate_package(&selected, "bin/codex").is_ok());
+    assert!(validate_package(&selected, "bin/lentor").is_ok());
 
     let root = standalone;
     let releases = root.join("releases").canonicalize().unwrap();
@@ -94,7 +94,7 @@ async fn seeds_full_package() {
     let previous = releases.join(format!("0.151.0-{target}"));
     package(&old, "0.152.0");
     // Match the alias present in actual Unix downloads.
-    std::os::unix::fs::symlink("bin/codex", old.join("codex")).unwrap();
+    std::os::unix::fs::symlink("bin/lentor", old.join("lentor")).unwrap();
     package(&previous, "0.151.0");
     let outside = temp.path().join("outside");
     package(&outside, "0.149.0");
@@ -360,7 +360,7 @@ async fn explicit_selection_requires_unchanged_cli_and_pins_all_versions() {
                 previous.to_string_lossy().as_bytes(),
             )
             .unwrap();
-            let before = std::fs::read(previous.join("bin/codex")).unwrap();
+            let before = std::fs::read(previous.join("bin/lentor")).unwrap();
             assert!(
                 !prepare_from_package(
                     &daemon,
@@ -405,10 +405,10 @@ async fn explicit_selection_requires_unchanged_cli_and_pins_all_versions() {
             }
             assert_ne!(selected, previous);
             assert_eq!(
-                std::fs::read(selected.join("bin/codex")).unwrap(),
+                std::fs::read(selected.join("bin/lentor")).unwrap(),
                 std::fs::read(&bin).unwrap()
             );
-            assert_eq!(std::fs::read(previous.join("bin/codex")).unwrap(), before);
+            assert_eq!(std::fs::read(previous.join("bin/lentor")).unwrap(), before);
             // Different resources, even at the same version: retain last two selections.
             for entry in std::fs::read_dir(root.join("releases")).unwrap() {
                 let path = entry.unwrap().path().canonicalize().unwrap();
