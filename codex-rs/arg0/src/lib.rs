@@ -287,7 +287,8 @@ where
     I: IntoIterator<Item = Result<(String, String), dotenvy::Error>>,
 {
     for (key, value) in iter.into_iter().flatten() {
-        if !key.to_ascii_uppercase().starts_with(ILLEGAL_ENV_VAR_PREFIX) {
+        let upper = key.to_ascii_uppercase();
+        if !upper.starts_with(ILLEGAL_ENV_VAR_PREFIX) && !upper.starts_with("LENTOR_") {
             // It is safe to call set_var() because our process is
             // single-threaded at this point in its execution.
             unsafe { std::env::set_var(&key, &value) };
@@ -596,7 +597,7 @@ mod tests {
     fn windows_batch_alias_preserves_unicode_executable_paths() -> anyhow::Result<()> {
         let root = TempDir::new()?;
         let profile = root.path().join("用户");
-        let alias_directory = profile.join(".codex").join("tmp").join("arg0");
+        let alias_directory = profile.join(".lentor").join("tmp").join("arg0");
         let executable_directory = profile.join("bin");
         fs::create_dir_all(&alias_directory)?;
         fs::create_dir_all(&executable_directory)?;

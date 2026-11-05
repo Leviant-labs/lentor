@@ -1,0 +1,6 @@
+---
+source: cli/tests/update.rs
+assertion_line: 25
+expression: "String::from_utf8_lossy(&assertion.get_output().stderr)"
+---
+Error: `lentor update` is not available in debug builds. Build or install a Lentor release manually.

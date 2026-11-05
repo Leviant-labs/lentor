@@ -1754,6 +1754,63 @@ async fn run_sampling_request(
     let mut original_input = None;
     let mut executed_tool_calls_by_output = HashMap::new();
     loop {
+        let provider = turn_context.provider.info();
+        if matches!(
+            provider.wire_api,
+            codex_model_provider_info::WireApi::Chat | codex_model_provider_info::WireApi::Messages
+        ) {
+            let effective_config = turn_context.config.config_layer_stack.effective_config();
+            if effective_config
+                .get("features")
+                .and_then(|features| features.get("image_generation"))
+                .and_then(toml::Value::as_bool)
+                == Some(true)
+            {
+                return Err(CodexErr::InvalidRequest(
+                    "hosted image generation is unsupported by the selected provider protocol"
+                        .to_string(),
+                ));
+            }
+            if turn_context.config.web_search_config.is_some() {
+                return Err(CodexErr::InvalidRequest(
+                    "hosted web search configuration is unsupported by the selected provider protocol".to_string(),
+                ));
+            }
+            let explicit_search = effective_config
+                .get("web_search")
+                .and_then(toml::Value::as_str)
+                .is_some_and(|mode| mode != "disabled")
+                || effective_config.get("features").is_some_and(|features| {
+                    ["web_search_request", "web_search_cached"]
+                        .iter()
+                        .any(|key| features.get(*key).and_then(toml::Value::as_bool) == Some(true))
+                });
+            let local_search_available = step_context.tool_router.model_visible_specs().iter().any(|spec| {
+                matches!(spec, codex_tools::ToolSpec::Namespace(namespace) if namespace.name == "web" && namespace.tools.iter().any(|tool| match tool {
+                    codex_tools::ResponsesApiNamespaceTool::Function(tool) => tool.name == "run",
+                    codex_tools::ResponsesApiNamespaceTool::Custom(tool) => tool.name == "run",
+                }))
+            });
+            if explicit_search && !local_search_available {
+                return Err(CodexErr::InvalidRequest(
+                    "hosted web search is unsupported by the selected provider protocol"
+                        .to_string(),
+                ));
+            }
+            let history = sess
+                .clone_history()
+                .await
+                .for_prompt_annotated(&step_context.settings.model_info.input_modalities);
+            let base_url = provider.base_url.as_deref().ok_or_else(|| {
+                CodexErr::InvalidRequest("translated provider requires a base URL".to_string())
+            })?;
+            sess.services.model_client.hydrate_native_state(
+                &turn_context.config.model_provider_id,
+                base_url,
+                provider.wire_api,
+                &history,
+            )?;
+        }
         // Running code-mode cells can request review while this response is in flight.
         // Keep the latest received ID until response.created replaces it.
         let prompt_input = if let Some(input) = initial_input.take() {
@@ -2536,7 +2593,7 @@ async fn handle_assistant_item_done_in_plan_mode(
     state: &mut PlanModeStreamState,
     previously_active_item: Option<&TurnItem>,
     last_agent_message: &mut Option<String>,
-) -> bool {
+) -> CodexResult<bool> {
     let turn_context = &step_context.turn;
     if let ResponseItem::Message { role, .. } = item
         && role == "assistant"
@@ -2572,13 +2629,13 @@ async fn handle_assistant_item_done_in_plan_mode(
             item,
             finalized_facts.as_ref(),
         )
-        .await;
+        .await?;
         if let Some(agent_message) = final_last_agent_message {
             *last_agent_message = Some(agent_message);
         }
-        return true;
+        return Ok(true);
     }
-    false
+    Ok(false)
 }
 
 #[instrument(level = "trace", skip_all)]
@@ -2939,7 +2996,7 @@ async fn try_run_sampling_request(
                         previously_streamed_item.as_ref(),
                         &mut last_agent_message,
                     )
-                    .await
+                    .await?
                 {
                     continue;
                 }

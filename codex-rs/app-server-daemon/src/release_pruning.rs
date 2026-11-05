@@ -212,7 +212,10 @@ pub(crate) async fn prune(daemon: &Daemon, root: &Path, settings: &DaemonSetting
             .and_then(|s| s.strip_suffix(&format!("-{}", manifest.target)));
         if !(name == format!("{}-{}", manifest.version, manifest.target)
             || local.is_some_and(|digest| blake3::Hash::from_hex(digest).is_ok()))
-            || !matches!(manifest.entrypoint.as_str(), "bin/codex" | "bin/codex.exe")
+            || !matches!(
+                manifest.entrypoint.as_str(),
+                "bin/lentor" | "bin/lentor.exe"
+            )
         {
             continue;
         }
@@ -226,8 +229,8 @@ pub(crate) async fn prune(daemon: &Daemon, root: &Path, settings: &DaemonSetting
         while let Some(child) = pending.pop() {
             // The Unix installer adds this alias; it never traverses outside the release.
             #[cfg(unix)]
-            if child == path.join("codex")
-                && std::fs::read_link(&child).ok().as_deref() == Some(Path::new("bin/codex"))
+            if child == path.join("lentor")
+                && std::fs::read_link(&child).ok().as_deref() == Some(Path::new("bin/lentor"))
             {
                 continue;
             }

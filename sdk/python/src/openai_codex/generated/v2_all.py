@@ -2836,17 +2836,6 @@ class ModelProviderCapabilitiesReadResponse(BaseModel):
     web_search: Annotated[bool, Field(alias="webSearch")]
 
 
-class ModelProviderConfigureParams(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-    )
-    api_key: Annotated[str, Field(alias="apiKey")]
-    base_url: Annotated[str, Field(alias="baseUrl")]
-    model: str | None = None
-    name: str
-    provider_id: Annotated[str, Field(alias="providerId")]
-
-
 class ModelProviderConfigureResponse(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -2854,6 +2843,12 @@ class ModelProviderConfigureResponse(BaseModel):
     base_url: Annotated[str, Field(alias="baseUrl")]
     model: str | None = None
     provider_id: Annotated[str, Field(alias="providerId")]
+
+
+class ModelProviderWireApi(Enum):
+    responses = "responses"
+    chat = "chat"
+    messages = "messages"
 
 
 class ModelRerouteReason(RootModel[Literal["highRiskCyberActivity"]]):
@@ -7602,17 +7597,6 @@ class ModelListRequest(BaseModel):
     params: ModelListParams
 
 
-class ModelProviderConfigureRequest(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True,
-    )
-    id: RequestId
-    method: Annotated[
-        Literal["modelProvider/configure"], Field(title="ModelProvider/configureRequestMethod")
-    ]
-    params: ModelProviderConfigureParams
-
-
 class AccountGatewayOAuthReadRequest(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
@@ -9067,6 +9051,18 @@ class ModelListResponse(BaseModel):
             description="Opaque cursor to pass to the next call to continue after the last item. If None, there are no more items to return.",
         ),
     ] = None
+
+
+class ModelProviderConfigureParams(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    api_key: Annotated[str, Field(alias="apiKey")]
+    base_url: Annotated[str, Field(alias="baseUrl")]
+    model: str | None = None
+    name: str
+    provider_id: Annotated[str, Field(alias="providerId")]
+    wire_api: Annotated[ModelProviderWireApi | None, Field(alias="wireApi")] = None
 
 
 class NewThreadModelDefaults(BaseModel):
@@ -10939,6 +10935,17 @@ class ReviewStartRequest(BaseModel):
     id: RequestId
     method: Annotated[Literal["review/start"], Field(title="Review/startRequestMethod")]
     params: ReviewStartParams
+
+
+class ModelProviderConfigureRequest(BaseModel):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+    id: RequestId
+    method: Annotated[
+        Literal["modelProvider/configure"], Field(title="ModelProvider/configureRequestMethod")
+    ]
+    params: ModelProviderConfigureParams
 
 
 class McpServerStatusListRequest(BaseModel):

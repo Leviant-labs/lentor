@@ -264,7 +264,7 @@ shell_snapshot_v2 = false
     .await;
     let run = test.cmd_with_server(&server)
         .env("HOME", test.home_path())
-        .env_remove("CODEX_API_KEY")
+        .env_remove("LENTOR_API_KEY")
         .env_remove("OPENAI_API_KEY")
         .arg("--skip-git-repo-check")
         .arg("-c")
@@ -450,7 +450,7 @@ async fn shutdown_flushes_completed_turn_and_file_diff() -> anyhow::Result<()> {
     .await;
 
     test.cmd_with_server(&server)
-        .env_remove("CODEX_API_KEY")
+        .env_remove("LENTOR_API_KEY")
         .env_remove("CODEX_ANALYTICS_EVENTS_CAPTURE_FILE")
         .arg("--skip-git-repo-check")
         .arg("-s")

@@ -210,8 +210,8 @@ sandbox = "unelevated"
         )
     );
     // A new task in a marked project still gets implicit defaults when leaving it.
-    std::fs::create_dir(untrusted.path().join(".codex"))?;
-    std::fs::write(untrusted.path().join(".codex/config.toml"), "")?;
+    std::fs::create_dir(untrusted.path().join(".lentor"))?;
+    std::fs::write(untrusted.path().join(".lentor/config.toml"), "")?;
     crate::config_update::write_trusted_project(server.request_handle(), untrusted.path()).await?;
     app.new_agents_overview_session(&mut tui, &mut server, Some(untrusted.path().abs()))
         .await?;
@@ -312,9 +312,9 @@ async fn local_projectless_defaults_respect_trust_scope_and_explicit_settings() 
         if project_marker {
             // The server must notice a project layer added after client discovery.
             assert!(config.config_layer_stack.is_projectless());
-            std::fs::create_dir(config.cwd.join(".codex"))?;
+            std::fs::create_dir(config.cwd.join(".lentor"))?;
             std::fs::write(
-                config.cwd.join(".codex/config.toml"),
+                config.cwd.join(".lentor/config.toml"),
                 "model = \"untrusted-model\"\n",
             )?;
         }

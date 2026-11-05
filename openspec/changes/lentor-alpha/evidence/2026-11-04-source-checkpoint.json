@@ -1,0 +1,37 @@
+{
+  "date": "2026-11-04",
+  "testedSourceBeforeFinalFormatting": "3b88b594232a97f4bd254e4ef387a6955a0aa0de",
+  "alphaReady": false,
+  "codecTests": {
+    "command": "just test -p codex-provider-codecs",
+    "nextestRunId": "2c477b76-3414-4cc8-9445-310b34214a41",
+    "passed": 48,
+    "failed": 0,
+    "skipped": 0,
+    "includesOptionalAccountingFollowup": true,
+    "toolCallsAndSupportedTokenCountersPreserved": true
+  },
+  "workspaceTestAttempt": {
+    "command": "just test",
+    "allFeatures": false,
+    "nativeIntegrationHelpersBuilt": true,
+    "status": "buildFailedBeforeTestExecution",
+    "failedCrate": "glib-sys",
+    "missingExecutable": "pkg-config",
+    "operation": "GLib discovery for the workspace voice host",
+    "nextestTestsExecuted": false
+  },
+  "finalization": {
+    "lintCommand": "just fix -p codex-provider-codecs -p codex-cli -p codex-install-context",
+    "lintExitCode": 0,
+    "lintWarningsReported": 0,
+    "formatCommand": "just fmt",
+    "formatExitCode": 0,
+    "testsRerunAfterLintOrFormat": false
+  },
+  "pending": [
+    "Windows voice native SDK setup and complete workspace test execution",
+    "Fresh native build and live Chat acceptance",
+    "Hosted CI, dependency advisory triage and release review"
+  ]
+}

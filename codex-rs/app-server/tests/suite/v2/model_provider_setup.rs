@@ -42,6 +42,10 @@ async fn configure_rejects_invalid_provider_before_writing_config() -> Result<()
             .read_stream_until_error_message(RequestId::Integer(id))
             .await?;
         assert_eq!(error.error.code, -32600);
+        assert_eq!(
+            error.error.data.as_ref().unwrap()["providerConfigurationOutcome"],
+            "unchanged"
+        );
         assert!(!error.error.message.contains("synthetic-secret"));
     }
     assert_eq!(
@@ -105,6 +109,47 @@ async fn endpoint_model_list_uses_authoritative_sparse_catalog() -> Result<()> {
         json!("high")
     );
     assert!(response.data[1].supported_reasoning_efforts.is_empty());
+    Ok(())
+}
+
+#[tokio::test]
+async fn messages_endpoint_model_list_normalizes_inference_path_and_uses_api_key() -> Result<()> {
+    let endpoint = MockServer::start().await;
+    let _mock = Mock::given(method("GET"))
+        .and(path("/v1/models"))
+        .and(header("x-api-key", "synthetic-key"))
+        .and(header("anthropic-version", "2023-06-01"))
+        .respond_with(
+            ResponseTemplate::new(200).set_body_json(json!({"data": [{"id": "vendor/model"}]})),
+        )
+        .expect(1..)
+        .mount_as_scoped(&endpoint)
+        .await;
+    let home = TempDir::new()?;
+    let base = endpoint.uri();
+    std::fs::write(
+        home.path().join("config.toml"),
+        format!(
+            "model_provider = 'custom'\n[features]\napi_key_model_discovery = true\n[model_providers.custom]\nname = 'Custom'\nbase_url = '{base}/v1/messages'\nmodel_catalog_url = '{base}/v1/models'\nmodel_catalog_format = 'openai'\nenv_key = 'TEST_ENDPOINT_KEY'\nwire_api = 'messages'\nrequires_openai_auth = false\n"
+        ),
+    )?;
+    let mut app = TestAppServer::builder()
+        .with_codex_home(home.path())
+        .with_env_overrides(&[("TEST_ENDPOINT_KEY", Some("synthetic-key"))])
+        .build_initialized()
+        .await?;
+    let id = app
+        .send_list_models_request(ModelListParams::default())
+        .await?;
+    let response: ModelListResponse = app.read_response(id).await?;
+    assert_eq!(
+        response
+            .data
+            .iter()
+            .map(|item| item.id.as_str())
+            .collect::<Vec<_>>(),
+        vec!["vendor/model"]
+    );
     Ok(())
 }
 
@@ -255,7 +300,7 @@ async fn endpoint_model_list_rejects_cursors_after_refresh_failure_and_provider_
                 Some("synthetic-replacement-key"),
             ),
             ("OPENAI_API_KEY", None),
-            ("CODEX_API_KEY", None),
+            ("LENTOR_API_KEY", None),
         ])
         .build_initialized()
         .await?;

@@ -141,7 +141,7 @@ pub fn new_approval_decision_cell(
                     vec![
                         actor.subject().into(),
                         "persisted".bold(),
-                        " Codex network access to ".into(),
+                        " Lentor network access to ".into(),
                         Span::from(target).dim(),
                     ],
                 ),

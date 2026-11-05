@@ -1,5 +1,16 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "ModelProviderWireApi": {
+      "description": "The wire protocol used by an API-key provider.",
+      "enum": [
+        "responses",
+        "chat",
+        "messages"
+      ],
+      "type": "string"
+    }
+  },
   "description": "Configures an API-key provider without persisting its secret in config.toml.",
   "properties": {
     "apiKey": {
@@ -19,6 +30,16 @@
     },
     "providerId": {
       "type": "string"
+    },
+    "wireApi": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/ModelProviderWireApi"
+        },
+        {
+          "type": "null"
+        }
+      ]
     }
   },
   "required": [

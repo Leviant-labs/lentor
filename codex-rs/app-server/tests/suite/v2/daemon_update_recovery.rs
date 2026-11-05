@@ -813,10 +813,10 @@ pub(super) fn spawn_server(home: &Path, socket_path: &Path) -> Result<Child> {
     Ok(Command::new(binary)
         .args(["--listen", &format!("unix://{}", socket_path.display())])
         .arg(DISABLE_PLUGIN_STARTUP_TASKS_ARG)
-        .env("CODEX_HOME", home)
+        .env("LENTOR_HOME", home)
         // Match TestAppServer's isolation from the host's managed configuration.
         .env(
-            "CODEX_APP_SERVER_MANAGED_CONFIG_PATH",
+            "LENTOR_APP_SERVER_MANAGED_CONFIG_PATH",
             home.join("managed_config.toml"),
         )
         .current_dir(home)

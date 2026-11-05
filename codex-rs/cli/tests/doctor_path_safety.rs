@@ -23,6 +23,9 @@ use tokio::io::BufReader;
 use tokio::net::TcpListener;
 use tokio::time::timeout;
 
+#[path = "doctor_path_safety/managed_env_tests.rs"]
+mod doctor_managed_env_tests;
+
 struct Fixture {
     root: TempDir,
     program: PathBuf,
@@ -42,7 +45,7 @@ impl Fixture {
         let program = root
             .path()
             .join(format!("codex{}", std::env::consts::EXE_SUFFIX));
-        let source = codex_utils_cargo_bin::cargo_bin("codex")?;
+        let source = codex_utils_cargo_bin::cargo_bin("lentor")?;
         // Hard-link setup and teardown invalidate other tests' Rosetta translations.
         #[cfg(all(target_os = "macos", target_arch = "x86_64"))]
         {
@@ -50,7 +53,7 @@ impl Fixture {
             // Translate the fixture before the timed diagnostic command.
             anyhow::ensure!(
                 std::process::Command::new(&program)
-                    .env("CODEX_HOME", &home)
+                    .env("LENTOR_HOME", &home)
                     .arg("--version")
                     .output()?
                     .status
@@ -119,17 +122,17 @@ wire_api = "responses"
         let mut command = assert_cmd::Command::new(&self.program);
         command
             .current_dir(&self.workspace)
-            .env("CODEX_HOME", &self.home)
+            .env("LENTOR_HOME", &self.home)
             .env("HOME", self.root.path())
             .env("PATH", &self.path)
             .env("CODEX_TEST_HELPER_MARKER", &self.marker)
-            .env("CODEX_MANAGED_BY_NPM", "1")
+            .env("LENTOR_MANAGED_BY_NPM", "1")
             .env(
-                "CODEX_MANAGED_PACKAGE_ROOT",
+                "LENTOR_MANAGED_PACKAGE_ROOT",
                 self.workspace.join("node_modules/@openai/codex"),
             )
             .env(
-                "CODEX_APP_SERVER_MANAGED_CONFIG_PATH",
+                "LENTOR_APP_SERVER_MANAGED_CONFIG_PATH",
                 self.home.join("managed_config.toml"),
             )
             .env("HTTPS_PROXY", "http://127.0.0.1:9")
@@ -190,6 +193,47 @@ fn startup_and_doctor_do_not_execute_path_helpers() -> Result<()> {
         );
         assert!(!fixture.marker.exists(), "doctor executed a PATH helper");
     }
+    Ok(())
+}
+
+#[test]
+fn doctor_discovers_lentor_commands_without_inspecting_codex() -> Result<()> {
+    let fixture = Fixture::new()?;
+    let first = fixture.workspace.join("node_modules/.bin");
+    let second = fixture.root.path().join("other-bin");
+    std::fs::create_dir(&second)?;
+    for directory in [&first, &second] {
+        for command in ["lentor", "codex"] {
+            let executable = directory.join(format!("{command}{}", std::env::consts::EXE_SUFFIX));
+            #[cfg(unix)]
+            codex_utils_cargo_bin::write_executable(&executable, "#!/bin/sh\nexit 99\n")?;
+            #[cfg(windows)]
+            std::fs::write(&executable, "not an executable image")?;
+        }
+    }
+    let output = fixture
+        .command()?
+        .args(["doctor", "--json"])
+        .env("PATH", std::env::join_paths([&first, &second])?)
+        .output()?;
+    let report: Value = serde_json::from_slice(&output.stdout)?;
+    let details = report["checks"]["installation"]["details"]
+        .as_object()
+        .expect("installation details");
+    let commands: serde_json::Map<String, Value> = details
+        .iter()
+        .filter(|(key, _)| key.starts_with("PATH "))
+        .map(|(key, value)| (key.clone(), value.clone()))
+        .collect();
+    assert_eq!(
+        Value::Object(commands),
+        json!({
+            "PATH lentor entries": "2",
+            "PATH lentor #1": first.join(format!("lentor{}", std::env::consts::EXE_SUFFIX)),
+            "PATH lentor #2": second.join(format!("lentor{}", std::env::consts::EXE_SUFFIX)),
+        })
+    );
+    assert!(!fixture.marker.exists(), "doctor executed a PATH helper");
     Ok(())
 }
 
@@ -348,7 +392,7 @@ fn doctor_reports_only_safe_config_error_metadata() -> Result<()> {
     // macOS temp directories can use a symlinked path; trust the canonical workspace.
     let project_key = toml::Value::String(project_trust_key(&fixture.workspace));
     let original = format!("{original}\n[projects.{project_key}]\ntrust_level = \"trusted\"\n");
-    let project_config_dir = fixture.workspace.join(".codex");
+    let project_config_dir = fixture.workspace.join(".lentor");
     std::fs::create_dir(&project_config_dir)?;
     for (snapshot_name, config_file, config) in [
         (
@@ -525,7 +569,7 @@ async fn interactive_tmux_startup_does_not_execute_workspace_helpers() -> Result
     env.insert("TERM_PROGRAM".to_string(), "tmux".to_string());
     env.insert("TMUX".to_string(), "test-tmux".to_string());
     env.insert(
-        "CODEX_TUI_DISABLE_KEYBOARD_ENHANCEMENT".to_string(),
+        "LENTOR_TUI_DISABLE_KEYBOARD_ENHANCEMENT".to_string(),
         "0".to_string(),
     );
     env.insert(
@@ -643,8 +687,8 @@ async fn feedback_with_logs_does_not_execute_path_helpers() -> Result<()> {
             ("PATH", Some(path.as_ref())),
             ("HOME", Some(home.as_ref())),
             ("CODEX_TEST_HELPER_MARKER", Some(marker.as_ref())),
-            ("CODEX_MANAGED_BY_NPM", Some("1")),
-            ("CODEX_MANAGED_PACKAGE_ROOT", Some(package_root.as_ref())),
+            ("LENTOR_MANAGED_BY_NPM", Some("1")),
+            ("LENTOR_MANAGED_PACKAGE_ROOT", Some(package_root.as_ref())),
             ("ZELLIJ", Some("0")),
             ("ZELLIJ_VERSION", None),
             ("TMUX", None),

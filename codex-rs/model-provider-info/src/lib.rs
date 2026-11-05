@@ -34,11 +34,13 @@ use std::time::Duration;
 mod capabilities;
 mod gateway_oauth;
 mod oauth_session;
+mod translated_base_url;
 pub use capabilities::ModelProviderCapabilities;
 pub use capabilities::RemoteCompactionSupport;
 pub use gateway_oauth::GatewayOAuthConfig;
 pub use gateway_oauth::GatewayOAuthDelivery;
 pub use oauth_session::OAuthSessionConfig;
+pub use translated_base_url::normalize_translated_base_url;
 
 pub const RESIDENCY_HEADER_NAME: &str = "x-openai-internal-codex-residency";
 
@@ -99,39 +101,30 @@ pub const AMAZON_BEDROCK_DEFAULT_BASE_URL: &str =
     "https://bedrock-mantle.us-east-1.api.aws/openai/v1";
 const AMAZON_BEDROCK_MANTLE_CLIENT_AGENT_HEADER: &str = "x-amzn-mantle-client-agent";
 const AMAZON_BEDROCK_MANTLE_CLIENT_AGENT_VALUE: &str = "codex";
-const CHAT_WIRE_API_REMOVED_ERROR: &str = "`wire_api = \"chat\"` is no longer supported.\nHow to fix: set `wire_api = \"responses\"` in your provider config.\nMore info: https://github.com/openai/codex/discussions/7782";
 pub const LEGACY_OLLAMA_CHAT_PROVIDER_ID: &str = "ollama-chat";
 pub const OLLAMA_CHAT_PROVIDER_REMOVED_ERROR: &str = "`ollama-chat` is no longer supported.\nHow to fix: replace `ollama-chat` with `ollama` in `model_provider`, `oss_provider`, or `--local-provider`.\nMore info: https://github.com/openai/codex/discussions/7782";
 
 /// Wire protocol that the provider speaks.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, JsonSchema)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum WireApi {
     /// The Responses API exposed by OpenAI at `/v1/responses`.
     #[default]
     Responses,
+    /// OpenAI-compatible Chat Completions.
+    Chat,
+    /// Anthropic-compatible Messages.
+    Messages,
 }
 
 impl fmt::Display for WireApi {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let value = match self {
             Self::Responses => "responses",
+            Self::Chat => "chat",
+            Self::Messages => "messages",
         };
         f.write_str(value)
-    }
-}
-
-impl<'de> Deserialize<'de> for WireApi {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let value = String::deserialize(deserializer)?;
-        match value.as_str() {
-            "responses" => Ok(Self::Responses),
-            "chat" => Err(serde::de::Error::custom(CHAT_WIRE_API_REMOVED_ERROR)),
-            _ => Err(serde::de::Error::unknown_variant(&value, &["responses"])),
-        }
     }
 }
 
@@ -473,6 +466,12 @@ other non-default provider fields are not supported"
             .base_url
             .clone()
             .unwrap_or_else(|| default_base_url.to_string());
+        let base_url = if self.wire_api == WireApi::Responses {
+            base_url
+        } else {
+            normalize_translated_base_url(&base_url, self.wire_api)
+                .map_err(CodexErr::InvalidRequest)?
+        };
 
         let mut headers = self.build_header_map()?;
         if let Some(requirement) = read_managed_residency_requirement() {
@@ -772,14 +771,14 @@ pub fn create_oss_provider(default_provider_port: u16, wire_api: WireApi) -> Mod
     // switch to reading values from config.toml instead.
     let default_codex_oss_base_url = format!(
         "http://localhost:{codex_oss_port}/v1",
-        codex_oss_port = std::env::var("CODEX_OSS_PORT")
+        codex_oss_port = std::env::var("LENTOR_OSS_PORT")
             .ok()
             .filter(|value| !value.trim().is_empty())
             .and_then(|value| value.parse::<u16>().ok())
             .unwrap_or(default_provider_port)
     );
 
-    let codex_oss_base_url = std::env::var("CODEX_OSS_BASE_URL")
+    let codex_oss_base_url = std::env::var("LENTOR_OSS_BASE_URL")
         .ok()
         .filter(|v| !v.trim().is_empty())
         .unwrap_or(default_codex_oss_base_url);

@@ -1,0 +1,101 @@
+{
+  "date": "2026-11-05",
+  "runtimeSourceHead": "2149a14ab387d05a6aa0b15153e4ee27d9795914",
+  "alphaReady": false,
+  "scope": "Retained CI/bootstrap/V8 configuration and Lentor Bazel binary labels; no CLI-first product removals",
+  "nativeBuild": {
+    "command": "cargo build --locked -p codex-cli --bin lentor -p codex-exec --bin codex-exec -p codex-code-mode-host --bin codex-code-mode-host -p codex-rmcp-client --bin test_stdio_server --bin test_streamable_http_server",
+    "workingDirectory": "codex-rs",
+    "exitCode": 0,
+    "reportedSeconds": 1123,
+    "cached": true,
+    "jobs": 1,
+    "incremental": false,
+    "debug": 0,
+    "pinnedV8SandboxAndPointerCompressionPreserved": true,
+    "cliSha256": "B63B487D8B58CF14591A97839EE3B0957A9F6F2E4B878EDE29B24A12CEB236B6",
+    "combinedHostSha256": "99FCC7EF11585F29F449F05885F8AC9DA1A606D6B8181FA42FADE7CEB0DF5D5E"
+  },
+  "hostTests": {
+    "command": "just test -p codex-code-mode-host --test-threads 1",
+    "passed": 82,
+    "failed": 0,
+    "skipped": 0,
+    "testSeconds": 26.403,
+    "initialAttempt": "Interrupted during compilation with no test summary; not counted",
+    "log": "lentor-cli-first-code-mode-host-tests-resumed-2026-11-05.log",
+    "nextestRunId": "a704705f-eaff-4432-b232-9a1eb4cd8860"
+  },
+  "pythonChecks": {
+    "packageAssemblerPassed": 3,
+    "formatterRegressionPassed": 7,
+    "offlineLiveHarnessPassed": 15,
+    "buildBuddyWrapperPassed": 14,
+    "v8ResolverPassed": 11,
+    "v8ResolverSkipped": 1,
+    "skipReason": "Existing Windows unprivileged-symlink case"
+  },
+  "workflowChecks": {
+    "forkActionlint": "passed",
+    "sdkActionlint": "passed with only pre-existing environment.deployment parser diagnostic filtered",
+    "pythonSdkFormat": "passed",
+    "mockHostSelectionsAndPairedExportPassed": 3,
+    "actualWindowsPinnedV8Export": "passed",
+    "bazelLockCheck": "bazel mod deps --lockfile_mode=error passed",
+    "bazelSelectedTargetLoading": "passed",
+    "bazelUnconfiguredClosure": "failed: LLVM kernel-header mapping references unavailable linux_kernel_headers_riscv.4.13.16; configured platform closure not established"
+  },
+  "liveChat": {
+    "ok": true,
+    "stage": "complete",
+    "secret_in_server_output": false,
+    "secret_in_temp_files": false,
+    "credential_cleanup": "deleted",
+    "graceful_shutdown": true,
+    "temporary_directory_removed": true,
+    "model_found": true,
+    "reasoning_efforts_advertised": 4,
+    "reasoning_efforts": [
+      "none",
+      "low",
+      "medium",
+      "high"
+    ],
+    "selected_reasoning_effort": "none",
+    "first_turn": {
+      "streamed": true,
+      "plan_updated": true,
+      "tool_output_item_seen": false,
+      "streamed_after_plan": true
+    },
+    "plan_result_in_rollout": true,
+    "resumed_model_provider_effort_verified": true,
+    "continued_turn": {
+      "streamed": true,
+      "plan_updated": true,
+      "tool_output_item_seen": false,
+      "streamed_after_plan": true
+    },
+    "plan_result_after_resume": true,
+    "file_scan": {
+      "files": 10943,
+      "bytes": 187043447,
+      "seconds": 31.51
+    },
+    "protocol": "chat",
+    "model": "inclusionai/ling-3.1-flash-1019",
+    "base": "https://ai-gateway.vercel.sh/v1"
+  },
+  "finalization": {
+    "format": "just fmt passed",
+    "testsRerunAfterFormatting": false
+  },
+  "pending": [
+    "Fresh hosted CI on repair commits",
+    "Linux/macOS helper link and startup",
+    "Complete configured terminal closure and workspace suite",
+    "Dependency-policy and remaining CI repairs",
+    "CLI-first cloud/desktop/voice/installer removals",
+    "New packaged candidate and same-candidate all-three-protocol acceptance"
+  ]
+}

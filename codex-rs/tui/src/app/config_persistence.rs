@@ -517,7 +517,7 @@ impl App {
                     "failed to refresh effective config after an overridden write"
                 );
                 self.chat_widget.add_error_message(format!(
-                    "{setting} were saved, but Codex could not refresh the effective config: {err}"
+                    "{setting} were saved, but Lentor could not refresh the effective config: {err}"
                 ));
                 None
             }

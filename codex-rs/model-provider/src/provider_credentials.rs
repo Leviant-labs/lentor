@@ -10,7 +10,7 @@ use std::sync::atomic::Ordering;
 use std::time::SystemTime;
 use url::Url;
 
-const SERVICE: &str = "clodex-api-providers";
+const SERVICE: &str = "lentor-api-providers";
 static NEXT_REFERENCE: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

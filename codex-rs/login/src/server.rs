@@ -477,7 +477,7 @@ async fn process_request(
                             },
                         },
                         Err(_) => login_error_response(
-                            "Sign-in completed but redirecting back to Codex failed.",
+                            "Sign-in completed but redirecting to the sign-in page failed.",
                             io::ErrorKind::Other,
                             Some("redirect_failed"),
                             /*error_description*/ None,
@@ -974,7 +974,7 @@ fn render_login_error_page(
                 "This account is not currently authorized to use Codex in this workspace."
                     .to_string(),
                 "Contact your workspace administrator to request access to Codex.".to_string(),
-                "Contact your workspace administrator to get access to Codex, then return to Codex and try again."
+                "Contact your workspace administrator to get access to Codex, then return to Lentor and try again."
                     .to_string(),
             )
         } else {
@@ -982,7 +982,7 @@ fn render_login_error_page(
                 "Sign-in could not be completed".to_string(),
                 message.to_string(),
                 error_description.unwrap_or(message).to_string(),
-                "Return to Codex to retry, switch accounts, or contact your workspace admin if access is restricted."
+                "Return to Lentor to retry, switch accounts, or contact your workspace admin if access is restricted."
                     .to_string(),
             )
         };

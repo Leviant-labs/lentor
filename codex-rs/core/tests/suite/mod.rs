@@ -96,6 +96,13 @@ mod guardian_authorization_refresh;
 mod guardian_cached_score;
 #[path = "guardian_checkpoint_migration_tests.rs"]
 mod guardian_checkpoint_migration;
+#[path = "translated_approval_tests.rs"]
+mod translated_approval;
+#[path = "translated_cancellation_tests.rs"]
+mod translated_cancellation;
+#[path = "translated_failures_tests.rs"]
+mod translated_failures;
+mod translated_provider;
 // Uses the same command-approval harness as guardian_review below.
 mod canonical_plugin_connectors;
 mod gateway_auth;
