@@ -14,6 +14,57 @@ use tempfile::tempdir;
 use codex_keyring_store::tests::MockKeyringStore;
 use keyring::Error as KeyringError;
 
+#[test]
+fn direct_keyring_does_not_import_codex_auth() -> anyhow::Result<()> {
+    let home = tempdir()?;
+    let keyring = ServiceAwareStore::default();
+    let key = compute_store_key(home.path())?;
+    keyring.save(
+        "Codex Auth",
+        &key,
+        &serde_json::to_string(&auth_with_prefix("old"))?,
+    )?;
+    let storage = DirectKeyringAuthStorage::new(
+        home.path().to_path_buf(),
+        Arc::new(keyring.clone()),
+        AuthCredentialsStoreMode::Keyring,
+    );
+    assert_eq!(storage.load()?, None);
+    let auth = auth_with_prefix("lentor");
+    storage.save(&auth)?;
+    assert_eq!(storage.load()?, Some(auth));
+    assert!(keyring.load("Codex Auth", &key)?.is_some());
+    Ok(())
+}
+
+#[derive(Clone, Default, Debug)]
+struct ServiceAwareStore(MockKeyringStore);
+
+impl KeyringStore for ServiceAwareStore {
+    fn load(
+        &self,
+        service: &str,
+        account: &str,
+    ) -> Result<Option<String>, codex_keyring_store::CredentialStoreError> {
+        self.0.load(service, &format!("{service}:{account}"))
+    }
+    fn save(
+        &self,
+        service: &str,
+        account: &str,
+        value: &str,
+    ) -> Result<(), codex_keyring_store::CredentialStoreError> {
+        self.0.save(service, &format!("{service}:{account}"), value)
+    }
+    fn delete(
+        &self,
+        service: &str,
+        account: &str,
+    ) -> Result<bool, codex_keyring_store::CredentialStoreError> {
+        self.0.delete(service, &format!("{service}:{account}"))
+    }
+}
+
 #[tokio::test]
 async fn file_storage_load_returns_auth_dot_json() -> anyhow::Result<()> {
     let codex_home = tempdir()?;

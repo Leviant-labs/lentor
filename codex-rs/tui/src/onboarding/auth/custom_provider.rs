@@ -92,7 +92,10 @@ impl AuthModeWidget {
                             },
                         ).await;
                         match result {
-                            Ok(_) => {
+                            Ok(response) if response.model.is_some() => {
+                                *state.write().unwrap() = SignInState::CustomProviderConfigured;
+                            }
+                            Ok(response) => {
                                 let models = handle
                                     .request_typed::<codex_app_server_protocol::ModelListResponse>(
                                         ClientRequest::ModelList {
@@ -121,9 +124,9 @@ impl AuthModeWidget {
                                             };
                                     }
                                     _ => {
-                                        *error.write().unwrap() = Some("Model discovery failed or returned no models. Configure the provider again.".to_string());
+                                        *error.write().unwrap() = Some("Model discovery failed or returned no models. Enter a model ID to continue.".to_string());
                                         *state.write().unwrap() = SignInState::CustomProvider(
-                                            ProviderSetupForm::new(String::new()),
+                                            ProviderSetupForm::new(response.base_url),
                                         );
                                     }
                                 }
@@ -161,8 +164,8 @@ impl AuthModeWidget {
                 form.render(area, buf);
                 if let Some(error) = self.error_message() {
                     let error_area = Rect {
-                        y: area.y.saturating_add(11),
-                        height: area.height.saturating_sub(11),
+                        y: area.y.saturating_add(15),
+                        height: area.height.saturating_sub(15),
                         ..area
                     };
                     Paragraph::new(error.red())

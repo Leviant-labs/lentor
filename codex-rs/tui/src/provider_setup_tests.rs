@@ -3,7 +3,7 @@ use pretty_assertions::assert_eq;
 
 fn rendered(form: &ProviderSetupForm, width: u16) -> String {
     let mut buffer = Buffer::empty(Rect::new(
-        /*x*/ 0, /*y*/ 0, width, /*height*/ 11,
+        /*x*/ 0, /*y*/ 0, width, /*height*/ 15,
     ));
     form.render(buffer.area, &mut buffer);
     buffer
@@ -41,6 +41,7 @@ fn provider_setup_masks_key_and_submits_endpoint() {
             base_url: "https://gateway.example/v1".to_string(),
             api_key: "secret-provider-key".into(),
             model: None,
+            wire_api: Some(ModelProviderWireApi::Responses),
         }
     );
 }
@@ -82,4 +83,27 @@ async fn provider_setup_view_submits_redacted_configuration() {
     assert!(!format!("{params:?}").contains("secret-provider-key"));
     assert_eq!(params.base_url, "https://gateway.example/v1");
     assert!(view.is_complete());
+}
+
+#[test]
+fn provider_setup_selects_messages_and_manual_model() {
+    let mut form = ProviderSetupForm::new("https://gateway.example/v1".into());
+    form.key(KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE));
+    form.paste("test-key");
+    form.key(KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE));
+    form.key(KeyEvent::new(KeyCode::Left, KeyModifiers::NONE));
+    form.key(KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE));
+    form.paste("model-id");
+    let Some(ProviderSetupAction::Save(params)) =
+        form.key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE))
+    else {
+        panic!("expected provider configuration");
+    };
+    assert_eq!(
+        (params.wire_api, params.model),
+        (
+            Some(ModelProviderWireApi::Messages),
+            Some("model-id".into())
+        )
+    );
 }

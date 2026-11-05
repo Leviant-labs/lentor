@@ -292,6 +292,21 @@ pub(crate) struct AgentPickerThreadRefresh {
     pub(crate) archived_thread_ids: std::collections::HashSet<ThreadId>,
 }
 
+// Config/read can contain sensitive provider settings; never include it in event logs.
+pub(crate) struct ProviderSetupResult {
+    pub(crate) baseline: Option<codex_app_server_protocol::ConfigReadResponse>,
+    pub(crate) result: Result<
+        codex_app_server_protocol::ModelProviderConfigureResponse,
+        codex_app_server_client::TypedRequestError,
+    >,
+}
+
+impl std::fmt::Debug for ProviderSetupResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("ProviderSetupResult(..)")
+    }
+}
+
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, IntoStaticStr)]
 pub(crate) enum AppEvent {
@@ -1346,9 +1361,7 @@ pub(crate) enum AppEvent {
     },
     OpenProviderSetup,
     ConfigureModelProvider(codex_app_server_protocol::ModelProviderConfigureParams),
-    ModelProviderConfigured(
-        Result<codex_app_server_protocol::ModelProviderConfigureResponse, String>,
-    ),
+    ModelProviderConfigured(ProviderSetupResult),
     /// Finished the API-key compatibility check; do not check the same catalog again.
     ApiKeyCompatModelsLoaded {
         request_id: uuid::Uuid,

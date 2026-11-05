@@ -1,0 +1,25 @@
+[package]
+name = "codex-provider-codecs"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+doctest = false
+
+[lints]
+workspace = true
+
+[dependencies]
+bytes = { workspace = true }
+codex-api = { workspace = true }
+codex-protocol = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+respan-gateway-conversation = { git = "https://github.com/respanai/respan-gateway", rev = "b8575e497c836cbbf0a170db2f7685a5ade753a1" }
+respan-gateway-conversation-http = { git = "https://github.com/respanai/respan-gateway", rev = "b8575e497c836cbbf0a170db2f7685a5ade753a1" }
+respan-gateway-http = { git = "https://github.com/respanai/respan-gateway", rev = "b8575e497c836cbbf0a170db2f7685a5ade753a1" }
+respan-gateway-sse = { git = "https://github.com/respanai/respan-gateway", rev = "b8575e497c836cbbf0a170db2f7685a5ade753a1" }
+
+[dev-dependencies]
+pretty_assertions = { workspace = true }

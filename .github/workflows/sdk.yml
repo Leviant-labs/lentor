@@ -74,7 +74,7 @@ jobs:
           target: x86_64-unknown-linux-gnu
           cache-scope: sdk
 
-      - name: Build codex and the code-mode host with Bazel
+      - name: Build Lentor and the code-mode host with Bazel
         id: build_bazel
         env:
           BUILDBUDDY_API_KEY: ${{ secrets.BUILDBUDDY_API_KEY }}
@@ -92,7 +92,7 @@ jobs:
             --build_metadata=COMMIT_SHA=${GITHUB_SHA} \
             --build_metadata=TAG_job=sdk \
             -- \
-            //codex-rs/cli:codex \
+            //codex-rs/cli:lentor \
             //codex-rs/code-mode-host:codex-code-mode-host
 
           cquery_output="$(
@@ -101,7 +101,7 @@ jobs:
               cquery \
               --output=files \
               -- \
-              'set(//codex-rs/cli:codex //codex-rs/code-mode-host:codex-code-mode-host)' \
+              'set(//codex-rs/cli:lentor //codex-rs/code-mode-host:codex-code-mode-host)' \
               | grep -E '^(/|bazel-out/)'
           )"
           mapfile -t bazel_output_paths <<< "${cquery_output}"
@@ -115,9 +115,9 @@ jobs:
           install_dir="${GITHUB_WORKSPACE}/.tmp/sdk-ci"
           mkdir -p "${install_dir}"
           install -m 755 "${bazel_output_paths[@]}" "${install_dir}"
-          echo "CODEX_EXEC_PATH=${install_dir}/codex" >> "$GITHUB_ENV"
+          echo "CODEX_EXEC_PATH=${install_dir}/lentor" >> "$GITHUB_ENV"
 
-      - name: Warm up Bazel-built codex
+      - name: Warm up Bazel-built Lentor
         shell: bash
         run: |
           set -euo pipefail

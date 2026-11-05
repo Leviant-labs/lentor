@@ -75,6 +75,8 @@ pub use crate::endpoint::ResponsesWebsocketClose;
 pub use crate::endpoint::ResponsesWebsocketConnection;
 pub use crate::endpoint::ResponsesWebsocketProbe;
 pub use crate::endpoint::SearchClient;
+pub use crate::endpoint::TranslatedApi;
+pub use crate::endpoint::TranslatedStreamClient;
 pub use crate::endpoint::session_update_session_json;
 pub use crate::error::ApiError;
 pub use crate::files::HostedFileUploadContext;

@@ -16,7 +16,7 @@ terminal_app_over_ssh=false, owned=true
 
 
 
-› Ask Codex to do anything
+› Ask Lentor to do anything
 
   ? for shortcuts
 ---
@@ -26,6 +26,6 @@ terminal_app_over_ssh=true, owned=false
      loading
 
 
-› Ask Codex to do anything
+› Ask Lentor to do anything
 
   ? for shortcuts

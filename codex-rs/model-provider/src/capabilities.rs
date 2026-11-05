@@ -3,6 +3,7 @@
 use codex_api::is_azure_responses_provider;
 use codex_model_provider_info::ModelProviderInfo;
 use codex_model_provider_info::RemoteCompactionSupport;
+use codex_model_provider_info::WireApi;
 
 /// Optional provider-backed features that Codex may expose at runtime.
 ///
@@ -41,12 +42,19 @@ impl ProviderCapabilities {
         };
         let overrides = info.capabilities.unwrap_or_default();
         Self {
-            external_web_access: overrides
-                .external_web_access
-                .unwrap_or(defaults.external_web_access),
-            remote_compaction: overrides
-                .remote_compaction
-                .unwrap_or(defaults.remote_compaction),
+            image_generation: info.wire_api == WireApi::Responses && defaults.image_generation,
+            web_search: info.wire_api == WireApi::Responses && defaults.web_search,
+            external_web_access: info.wire_api == WireApi::Responses
+                && overrides
+                    .external_web_access
+                    .unwrap_or(defaults.external_web_access),
+            remote_compaction: if info.wire_api == WireApi::Responses {
+                overrides
+                    .remote_compaction
+                    .unwrap_or(defaults.remote_compaction)
+            } else {
+                RemoteCompactionSupport::Unsupported
+            },
             ..defaults
         }
     }

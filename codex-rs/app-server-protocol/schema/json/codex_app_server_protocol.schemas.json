@@ -16002,6 +16002,16 @@
           },
           "providerId": {
             "type": "string"
+          },
+          "wireApi": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/v2/ModelProviderWireApi"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -16035,6 +16045,15 @@
         ],
         "title": "ModelProviderConfigureResponse",
         "type": "object"
+      },
+      "ModelProviderWireApi": {
+        "description": "The wire protocol used by an API-key provider.",
+        "enum": [
+          "responses",
+          "chat",
+          "messages"
+        ],
+        "type": "string"
       },
       "ModelRerouteReason": {
         "enum": [

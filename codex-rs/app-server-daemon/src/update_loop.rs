@@ -50,6 +50,7 @@ pub(crate) async fn request_manual_update(
     daemon: &Daemon,
     http_client_factory: HttpClientFactory,
 ) -> Result<crate::UpdateOutput> {
+    ensure_alpha_updates_available()?;
     if daemon
         .pid_file
         .file_name()
@@ -76,10 +77,17 @@ const INSTALL_URL: &str = "https://chatgpt.com/codex/install.sh";
 #[cfg(windows)]
 const INSTALL_URL: &str = "https://chatgpt.com/codex/install.ps1";
 
+fn ensure_alpha_updates_available() -> Result<()> {
+    anyhow::bail!(
+        "Lentor alpha daemon production updates and legacy migration are disabled; install a complete local Lentor package and run `lentor app-server daemon update --from-cli`"
+    )
+}
+
 pub(crate) async fn run(
     http_client_factory: HttpClientFactory,
     restore_release: Option<String>,
 ) -> Result<()> {
+    ensure_alpha_updates_available()?;
     let daemon = Daemon::from_environment()?;
     crate::backend::stderr_log::start(daemon.update_pid_file.with_extension("stderr.log"));
     let http = RouteAwareClientPool::new_without_request_logging(
@@ -601,7 +609,7 @@ async fn run_installer_script(
     };
     let mut child = command
         .env(
-            "CODEX_HOME",
+            "LENTOR_HOME",
             package_root
                 .parent()
                 .and_then(Path::parent)
@@ -763,7 +771,8 @@ enum InstallerResponse {
 
 /// HTTP boundary used to download the standalone installer.
 ///
-/// Implementations must issue a GET for the supplied URL, return exact response bytes for a
+/// Implementations may reject requests when the alpha updater policy disables fetching.
+/// Otherwise, they must issue a GET for the supplied URL, return exact response bytes for a
 /// successful status, and report a non-success status without buffering its response body.
 trait InstallerHttp: Send + Sync {
     fn get<'a>(
@@ -774,6 +783,7 @@ trait InstallerHttp: Send + Sync {
 
 impl InstallerHttp for RouteAwareClientPool {
     async fn get(&self, url: &str) -> Result<InstallerResponse> {
+        ensure_alpha_updates_available()?;
         let response = RouteAwareClientPool::get(self, url)
             .send()
             .await

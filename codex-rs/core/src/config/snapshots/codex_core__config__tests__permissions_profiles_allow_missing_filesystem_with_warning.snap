@@ -1,0 +1,8 @@
+---
+source: core/src/config/config_tests.rs
+assertion_line: 4314
+expression: config.startup_warnings
+---
+[
+    "Permissions profile `dev` does not define any recognized filesystem entries for this version of Lentor. Filesystem access will remain restricted. Upgrade Lentor if this profile expects filesystem permissions.",
+]

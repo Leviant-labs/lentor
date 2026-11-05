@@ -10,6 +10,7 @@ fn configure_provider_preserves_wire_input_and_redacts_debug() {
         "baseUrl": "https://gateway.example/v1",
         "apiKey": "provider-secret-for-wire-test",
         "model": null,
+        "wireApi": null,
     });
     let params: ModelProviderConfigureParams = serde_json::from_value(input.clone()).unwrap();
     assert_eq!(serde_json::to_value(&params).unwrap(), input);

@@ -139,7 +139,7 @@ async fn codex_home_symlink_opt_out_respects_host_config_and_scope() -> Result<(
                 format!("allow_symlinked_codex_home = {enabled}\n")
             }),
         )?;
-        let mut server = exec_server_with_env([("CODEX_HOME", home.path())], &[]).await?;
+        let mut server = exec_server_with_env([("LENTOR_HOME", home.path())], &[]).await?;
         let environment = Environment::create_for_tests(Some(server.websocket_url().to_string()))?;
         for root in [alias.as_path(), other_alias.as_path(), workspace.path()] {
             let mut policy = FileSystemSandboxPolicy::read_only();
@@ -586,7 +586,7 @@ async fn shell_snapshot_v2_remote_managed_proxy_uses_prepared_execution_context(
                 "executor-unbound-enterprise-token".to_string(),
             ),
             (
-                "CODEX_CA_CERTIFICATE",
+                "LENTOR_CA_CERTIFICATE",
                 ca_path.to_string_lossy().into_owned(),
             ),
             ("CURL_CA_BUNDLE", ca_path.to_string_lossy().into_owned()),

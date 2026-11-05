@@ -415,14 +415,13 @@ async fn reconnect_restores_history_permissions_and_resumes_unsent_input() -> Re
         let notices = history
             .lines()
             .filter(|line| {
-                line.contains("Couldn't confirm whether")
-                    || line.contains("background Codex service")
+                line.contains("Couldn't confirm whether") || line.contains("background service")
             })
             .collect::<Vec<_>>()
             .join("\n");
         if deferred_notice {
             assert_snapshot!(notices, @r###"
-⚠ A background Codex service is running v2.0.0, older than your Codex CLI
+⚠ A background service is running v2.0.0, older than your Lentor CLI v2.1.0.
 "###);
         } else if edit_offline {
             assert!(notices.contains("unacknowledged prompt"));

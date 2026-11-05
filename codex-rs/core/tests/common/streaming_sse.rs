@@ -53,7 +53,7 @@ impl StreamingSseServer {
 /// Starts a lightweight HTTP server that supports:
 /// - GET /v1/models -> empty models response
 /// - GET responses routes -> 426 to select the HTTP fallback
-/// - POST responses and Guardian routes -> SSE stream gated per-chunk, served in order
+/// - POST generation and Guardian routes -> SSE stream gated per-chunk, served in order
 ///
 /// Returns the server handle and a list of receivers that fire when each
 /// response stream finishes sending its final chunk.
@@ -123,7 +123,7 @@ pub async fn start_streaming_sse_server(
                             return;
                         }
 
-                        if method == "POST" && (responses_route || path == "/backend-api/codex/guardian") {
+                        if method == "POST" && (responses_route || matches!(path, "/v1/chat/completions" | "/v1/messages" | "/backend-api/codex/guardian")) {
                             let body = match read_request_body(&mut stream, &request, body_prefix)
                                 .await
                             {

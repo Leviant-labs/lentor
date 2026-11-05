@@ -1,5 +1,6 @@
 ---
 source: tui/src/chatwidget/tests/approval_requests.rs
+assertion_line: 123
 expression: "format!(\"{buf:?}\")"
 ---
 Buffer {
@@ -13,7 +14,7 @@ Buffer {
         "                                                                                ",
         "                                                                                ",
         "› 1. Yes, proceed (y)                                                           ",
-        "  2. No, and tell Codex what to do differently (esc)                            ",
+        "  2. No, and tell Lentor what to do differently (esc)                           ",
         "                                                                                ",
         "  Press enter to confirm or esc to cancel                                       ",
     ],
@@ -23,8 +24,8 @@ Buffer {
         x: 46, y: 2, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
         x: 0, y: 7, fg: Reset, bg: Reset, underline: Reset, modifier: BOLD | REVERSED,
         x: 0, y: 8, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
-        x: 48, y: 8, fg: Reset, bg: Reset, underline: Reset, modifier: BOLD,
-        x: 51, y: 8, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+        x: 49, y: 8, fg: Reset, bg: Reset, underline: Reset, modifier: BOLD,
+        x: 52, y: 8, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
         x: 2, y: 10, fg: Reset, bg: Reset, underline: Reset, modifier: DIM,
         x: 8, y: 10, fg: Reset, bg: Reset, underline: Reset, modifier: BOLD,
         x: 13, y: 10, fg: Reset, bg: Reset, underline: Reset, modifier: DIM,

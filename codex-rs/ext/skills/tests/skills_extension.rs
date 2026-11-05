@@ -103,7 +103,7 @@ mod shadow_task_context_tests;
 #[path = "skills_extension/presentation_dedup_tests.rs"]
 mod presentation_dedup_tests;
 
-static NEXT_CODEX_HOME_ID: AtomicUsize = AtomicUsize::new(0);
+static NEXT_LENTOR_HOME_ID: AtomicUsize = AtomicUsize::new(0);
 const SKILLS_INTRO_WITH_ABSOLUTE_PATHS: &str = "A skill is a set of instructions provided through a `SKILL.md` source. Below is the list of skills that can be used. Each entry includes a name, description, and source locator. `file` locators are on the host filesystem, `executor package` locators are owned by their execution environment, `cloud package` locators are opaque package identifiers, and `custom resource` locators use their provider's access mechanism.";
 const DEMO_SKILL_CONTENTS: &str =
     "---\nname: demo\ndescription: Demo skill.\n---\n# Demo\n\nUse the demo skill.\n";
@@ -3621,7 +3621,7 @@ fn skills_extension_config(config: &TestConfig) -> SkillsExtensionConfig {
 }
 
 fn test_codex_home() -> PathBuf {
-    let id = NEXT_CODEX_HOME_ID.fetch_add(1, Ordering::Relaxed);
+    let id = NEXT_LENTOR_HOME_ID.fetch_add(1, Ordering::Relaxed);
     std::env::temp_dir().join(format!(
         "codex-skills-extension-test-{}-{id}",
         std::process::id(),

@@ -1,0 +1,100 @@
+{
+  "date": "2026-11-04",
+  "candidate": "r3",
+  "alphaReady": false,
+  "sourceHead": "98604355929efbb63dc27544fedead086497a11d",
+  "sourceHasUncommittedChanges": true,
+  "archive": "lentor-windows-x64-alpha-local-20261104-r3.zip",
+  "archiveSha256": "9538461654197c5b05bc362cad6b914baf125bd3a4f2a041350b4ef741076dc4",
+  "binarySha256": "3D9AB3331C92BBE9E401539F7A3F3EA2B7E58E967DABDC7113EF95081B7669FA",
+  "live": {
+    "responses": {
+      "ok": true,
+      "stage": "complete",
+      "secret_in_server_output": false,
+      "secret_in_temp_files": false,
+      "credential_cleanup": "deleted",
+      "graceful_shutdown": true,
+      "temporary_directory_removed": true,
+      "model_found": true,
+      "reasoning_efforts_advertised": 4,
+      "reasoning_efforts": [
+        "none",
+        "low",
+        "medium",
+        "high"
+      ],
+      "selected_reasoning_effort": "none",
+      "first_turn": {
+        "streamed": true,
+        "plan_updated": true,
+        "tool_output_item_seen": false,
+        "streamed_after_plan": true
+      },
+      "plan_result_in_rollout": true,
+      "resumed_model_provider_effort_verified": true,
+      "continued_turn": {
+        "streamed": true,
+        "plan_updated": true,
+        "tool_output_item_seen": false,
+        "streamed_after_plan": true
+      },
+      "plan_result_after_resume": true,
+      "file_scan": {
+        "files": 5507,
+        "bytes": 102363318,
+        "seconds": 14.02
+      },
+      "protocol": "responses",
+      "model": "inclusionai/ling-3.1-flash-1019",
+      "base": "https://ai-gateway.vercel.sh/v1"
+    },
+    "messages": {
+      "ok": true,
+      "stage": "complete",
+      "secret_in_server_output": false,
+      "secret_in_temp_files": false,
+      "credential_cleanup": "deleted",
+      "graceful_shutdown": true,
+      "temporary_directory_removed": true,
+      "model_found": true,
+      "reasoning_efforts_advertised": 4,
+      "reasoning_efforts": [
+        "none",
+        "low",
+        "medium",
+        "high"
+      ],
+      "selected_reasoning_effort": "none",
+      "first_turn": {
+        "streamed": true,
+        "plan_updated": true,
+        "tool_output_item_seen": false,
+        "streamed_after_plan": true
+      },
+      "plan_result_in_rollout": true,
+      "resumed_model_provider_effort_verified": true,
+      "continued_turn": {
+        "streamed": true,
+        "plan_updated": true,
+        "tool_output_item_seen": false,
+        "streamed_after_plan": true
+      },
+      "plan_result_after_resume": true,
+      "file_scan": {
+        "files": 10943,
+        "bytes": 187028583,
+        "seconds": 31.36
+      },
+      "protocol": "messages",
+      "model": "inclusionai/ling-3.1-flash-1019",
+      "base": "https://ai-gateway.vercel.sh/v1"
+    }
+  },
+  "pending": [
+    "Chat accounting-metadata follow-up",
+    "full workspace test result",
+    "hosted CI",
+    "release review"
+  ]
+}

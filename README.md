@@ -7,7 +7,6 @@ Lentor is a local coding agent and an independent fork of
 endorsed by OpenAI. The upstream [LICENSE](LICENSE) and [NOTICE](NOTICE) remain
 intact; Lentor uses its own name and artwork.
 
-
 ## Prerelease workflow
 
 - `main` holds the current Lentor prerelease checkpoint.
@@ -28,7 +27,7 @@ This is a source checkout, not a published Lentor package. Build the existing
 engine from `codex-rs`:
 
 ```sh
-cargo build -p codex-cli --bin codex
+cargo build -p codex-cli --bin lentor
 ```
 
 Then run the launcher from the repository root:
@@ -43,8 +42,8 @@ sh ./lentor
 
 The launcher uses the already-built engine and does not rebuild on startup.
 Set `LENTOR_BINARY` to an absolute engine path if using a different build output.
-The internal executable and Rust crates retain their upstream names during this
-first branding pass.
+The CLI binary is named `lentor`; Rust crate names and internal helper binaries
+retain their upstream names.
 
 The launcher uses `~/.lentor` for its user profile, or the directory specified by
 `LENTOR_HOME`. It overrides an inherited `CODEX_HOME` only for the engine process
@@ -61,7 +60,6 @@ inside a session. Use `/models` to choose an available model and advertised
 reasoning effort. Keys entered in setup are stored in the OS credential store.
 
 The proprietary upstream desktop frontend is not part of this repository.
-
 
 ## License
 

@@ -1,5 +1,9 @@
 //! Model-history and persisted-rollout domain types.
 
+mod native_provider_state;
+pub use native_provider_state::NativeProviderProtocol;
+pub use native_provider_state::NativeProviderState;
+
 mod heartbeat;
 pub use heartbeat::HEARTBEAT_CONTENT_KIND;
 pub use heartbeat::Heartbeat;
@@ -65,6 +69,10 @@ pub struct ResponseItemEnvelope {
 ///
 #[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq, Eq, JsonSchema)]
 pub struct CodexHarnessMetadata {
+    /// Private, bounded provider state attached to this exact item, never model-visible.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub native_provider_state: Option<NativeProviderState>,
+
     /// Complete retained records actually delivered by this Guardian message. Host-only.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub guardian_sources: Vec<RetainedSource>,

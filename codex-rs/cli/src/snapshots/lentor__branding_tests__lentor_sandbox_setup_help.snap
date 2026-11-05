@@ -1,0 +1,13 @@
+---
+source: cli/src/branding_tests.rs
+assertion_line: 33
+expression: "crate::sandbox_setup::SandboxSetupCommand::command().bin_name(\"lentor sandbox setup\").render_help().to_string()"
+---
+Usage: lentor sandbox setup [OPTIONS] <--user <USER>|--current-user>
+
+Options:
+      --elevated           Set up the elevated Windows sandbox
+      --user <USER>        Windows user that will run Lentor after managed deployment
+      --current-user       Use the current Windows user as the Lentor user
+      --lentor-home <DIR>  LENTOR_HOME for the Lentor user. Required with --user
+  -h, --help               Print help

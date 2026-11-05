@@ -96,10 +96,10 @@ fn realtime_tls_selects_system_and_custom_trust() {
             ])
             .env(ADDRESS_ENV, format!("localhost:{}", address.port()))
             .env(TRUST_ENV, trust)
-            .env_remove("CODEX_CA_CERTIFICATE")
+            .env_remove("LENTOR_CA_CERTIFICATE")
             .env_remove("SSL_CERT_FILE");
         if trust == "custom" {
-            child.env("CODEX_CA_CERTIFICATE", &ca).env(
+            child.env("LENTOR_CA_CERTIFICATE", &ca).env(
                 "SSL_CERT_FILE",
                 temp.path().join("missing-lower-priority-ca.pem"),
             );
