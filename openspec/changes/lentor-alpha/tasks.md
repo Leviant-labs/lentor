@@ -84,7 +84,11 @@
   Its optional-accounting compatibility fix now passes all 48 scoped codec
   cases, zero skipped, including retained tool calls and token counters.
   Evidence: `.worktrees/reviews/lentor-alpha-chat-accounting-codecs-2026-11-04.log`.
-  A fresh native build and live Chat acceptance remain pending.
+  November 5 follow-up: the combined native Windows helper build and fresh Chat
+  success-path acceptance now pass, including plan-tool continuation,
+  restart/resume, provider/model/effort retention, credential/file audits and
+  cleanup. See `verification.md`. A new packaged candidate and same-candidate
+  all-three-protocol acceptance remain pending; r3 was not overwritten.
 
 ## Focused agent boundary verification
 

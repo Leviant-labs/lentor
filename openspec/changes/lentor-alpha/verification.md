@@ -4,6 +4,42 @@ This milestone is incomplete. Local implementation, automated fixtures and live
 acceptance are separate evidence categories. Local candidate checks do not
 establish release readiness or validate all uncommitted source changes.
 
+## November 5 retained-CI continuation
+
+Starting from `2149a14ab`, the retained-CI repair corrects Bazelisk bootstrap,
+V8 artifact selection on all scoped runners, Cargo configuration discovery and
+stale Lentor binary-label consumers. It does not implement the CLI-first product
+removals. The CLI-first plan remains uncommitted.
+
+The combined Windows CLI/exec/code-mode/MCP-helper build passed in 18m 43s using
+the pinned V8 inputs from `codex-rs`, including the code-mode host that failed
+under the old root-level CI invocation. It reused the existing target cache.
+Fresh native Chat success-path acceptance then passed streaming, plan-tool
+execution/continuation, restart/resume, exact model/provider/effort retention and
+credential/file audits. Credential deletion, graceful shutdown and temporary
+directory removal were confirmed. The exact authorized model was
+`inclusionai/ling-3.1-flash-1019`, with no fallback. Native binary SHA-256:
+`B63B487D8B58CF14591A97839EE3B0957A9F6F2E4B878EDE29B24A12CEB236B6`.
+
+Raw evidence is in the parent workspace under `.worktrees/reviews/`:
+`lentor-cli-first-combined-helpers-2026-11-05.log` and
+`lentor-cli-first-native-live-chat-2026-11-05.json`. This supersedes the pending
+fresh-native/Chat success-path gate below, not its historical failed attempts.
+It is not a new archive or same-candidate all-three-protocol acceptance.
+Full workspace execution, hosted CI, cross-platform links, dependency-policy
+repairs and release readiness remain incomplete.
+
+The retained host suite subsequently passed all 82 tests, zero skipped, through
+`just test -p codex-code-mode-host --test-threads 1` (26.403s test execution).
+The initial compilation attempt was interrupted without a test summary; only
+the resumed run is counted. The strict Bazel lockfile check also passed without
+lock changes. Selected Bazel targets load, but an unconfigured transitive query
+hits an unrelated LLVM kernel-header repository mapping; this is not proof of
+configured platform closure. Compact evidence:
+[November 5 CI repairs](evidence/2026-11-05-ci-repairs.json).
+Final `just fmt` passed after the scoped tests; tests were not rerun afterward.
+No Rust implementation source or dependency manifest was changed in this repair.
+
 ## Latest 2026-11-04 checkpoint
 
 The integrated source is being saved on `alpha/09-integrated-checkpoint`; the
